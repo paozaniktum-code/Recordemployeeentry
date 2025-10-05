@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>บันทึกเวลาเข้า-ออกงาน — หน้าบ้าน</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{box-sizing:border-box}
+    @media print{.no-print{display:none!important}}
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <header class="bg-white rounded-lg shadow p-6 mb-6">
+      <h1 class="text-2xl font-bold text-center">บันทึกเวลาเข้า-ออกงาน</h1>
+      <p class="text-center text-gray-600">สำหรับพนักงาน — เลือกชื่อ, ถ่ายรูป, แล้วบันทึก</p>
+      <div class="text-center mt-2">
+        <a href="admin.html" class="text-blue-600 underline no-print">ไปหน้าแอดมิน</a>
+      </div>
+    </header>
+
+    <section class="bg-white rounded-lg shadow p-6">
+      <div class="grid md:grid-cols-3 gap-6">
+        <div>
+          <label class="block text-sm font-medium mb-2">เลือกพนักงาน</label>
+          <select id="employeeSelect" class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500">
+            <option value="">เลือกพนักงาน</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">ประเภทการบันทึก</label>
+          <select id="recordType" class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500">
+            <option value="in">เข้างาน</option>
+            <option value="out">ออกงาน</option>
+          </select>
+        </div>
+        <div class="flex items-end text-sm text-gray-600">
+          * ระบบไม่ยอมให้ “ออกงาน” หากยังไม่มี “เข้างาน” ในวันเดียวกัน
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-3">ถ่ายรูปยืนยันตัวตน</h3>
+        <div class="flex flex-col items-center gap-4">
+          <video id="camera" width="320" height="240" autoplay class="border rounded"></video>
+          <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+          <div class="flex gap-3 flex-wrap justify-center">
+            <button id="openCamBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">เปิดกล้อง</button>
+            <button id="snapBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded">ถ่ายรูป</button>
+            <button id="saveBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">บันทึกเวลา</button>
+            <button id="closeCamBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">ปิดกล้อง</button>
+          </div>
+          <div id="photoPreview" class="hidden">
+            <img id="capturedPhoto" width="160" height="120" class="border rounded" alt="ตัวอย่างรูปถ่าย">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-lg shadow p-6 mt-6">
+      <h2 class="text-xl font-semibold mb-4">บันทึกล่าสุด</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full table-auto">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-4 py-3 text-left text-sm">วันที่</th>
+              <th class="px-4 py-3 text-left text-sm">เวลา</th>
+              <th class="px-4 py-3 text-left text-sm">ชื่อ-สกุล</th>
+              <th class="px-4 py-3 text-left text-sm">ประเภท</th>
+              <th class="px-4 py-3 text-left text-sm">รูปภาพ</th>
+            </tr>
+          </thead>
+          <tbody id="timeRecordsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const HOURS_PER_DAY = 8; // ใช้ร่วมกับหลังบ้านในการคำนวณ (ไว้เป็นข้อมูลอ้างอิง)
+
+    let employees = JSON.parse(localStorage.getItem('employees')) || [];
+    let timeRecords = JSON.parse(localStorage.getItem('timeRecords')) || [];
+    let currentPhoto = null, stream = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      bindButtons();
+      updateEmployeeSelect();
+      renderRecent();
+      window.addEventListener('beforeunload', stopCamera);
+    });
+
+    function bindButtons(){
+      document.getElementById('openCamBtn').addEventListener('click', startCamera);
+      document.getElementById('closeCamBtn').addEventListener('click', stopCamera);
+      document.getElementById('snapBtn').addEventListener('click', takePhoto);
+      document.getElementById('saveBtn').addEventListener('click', recordTime);
+    }
+
+    function updateEmployeeSelect(){
+      const sel = document.getElementById('employeeSelect');
+      sel.innerHTML = '<option value="">เลือกพนักงาน</option>';
+      employees.forEach(e=>{
+        const o = document.createElement('option');
+        o.value = e.id; o.textContent = e.name;
+        sel.appendChild(o);
+      });
+    }
+
+    async function startCamera(){
+      try{
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user' }, audio:false });
+        document.getElementById('camera').srcObject = stream;
+      }catch(e){ alert('เปิดกล้องไม่สำเร็จ: '+e.message); }
+    }
+    function stopCamera(){
+      const v = document.getElementById('camera');
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+      if(v) v.srcObject=null;
+    }
+    function takePhoto(){
+      const v = document.getElementById('camera');
+      if(!v.srcObject){ alert('กรุณาเปิดกล้องก่อน'); return; }
+      const c = document.getElementById('canvas');
+      c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+      currentPhoto = c.toDataURL('image/jpeg',0.85);
+      document.getElementById('capturedPhoto').src = currentPhoto;
+      document.getElementById('photoPreview').classList.remove('hidden');
+    }
+
+    function recordTime(){
+      const empId = document.getElementById('employeeSelect').value;
+      const type = document.getElementById('recordType').value;
+      if(!empId){ alert('กรุณาเลือกพนักงาน'); return; }
+      if(!currentPhoto){ alert('กรุณาถ่ายรูปยืนยันก่อน'); return; }
+
+      // ห้าม OUT ถ้าไม่มี IN ในวันเดียวกัน
+      if(type === 'out' && !hasOpenInToday(parseInt(empId))){
+        alert('ยังไม่มี “เข้างาน” ในวันเดียวกัน'); return;
+      }
+
+      const emp = employees.find(e=>e.id==empId);
+      const rec = {
+        id: Date.now(),
+        employeeId: parseInt(empId),
+        employeeName: emp.name,
+        type,
+        timestamp: new Date().toISOString(),
+        photo: currentPhoto
+      };
+      timeRecords.push(rec);
+      localStorage.setItem('timeRecords', JSON.stringify(timeRecords));
+
+      currentPhoto=null;
+      document.getElementById('photoPreview').classList.add('hidden');
+      stopCamera();
+      renderRecent();
+      alert(`บันทึกเวลา${type==='in'?'เข้างาน':'ออกงาน'}เรียบร้อยแล้ว`);
+    }
+
+    function hasOpenInToday(empId){
+      const todayKey = new Date().toLocaleDateString('th-TH');
+      const ins = timeRecords
+        .filter(r=>r.employeeId===empId && r.type==='in' && isSameDay(r.timestamp,todayKey))
+        .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+      for(const inRec of ins){
+        const out = timeRecords.find(r =>
+          r.employeeId===empId && r.type==='out' &&
+          isSameDay(r.timestamp,todayKey) &&
+          new Date(r.timestamp) > new Date(inRec.timestamp)
+        );
+        if(!out) return true;
+      }
+      return false;
+    }
+    function isSameDay(iso, keyTH){ return new Date(iso).toLocaleDateString('th-TH')===keyTH; }
+
+    function renderRecent(){
+      const tb = document.getElementById('timeRecordsBody');
+      tb.innerHTML='';
+      [...timeRecords].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))
+      .slice(0,30) // แสดงล่าสุด 30 รายการพอ
+      .forEach(r=>{
+        const d=new Date(r.timestamp);
+        const tr=document.createElement('tr');
+        const typeText=r.type==='in'?'เข้างาน':'ออกงาน';
+        const typeClass=r.type==='in'?'text-green-600':'text-red-600';
+        tr.className='border-b hover:bg-gray-50';
+        tr.innerHTML=`
+          <td class="px-4 py-3 text-sm">${d.toLocaleDateString('th-TH')}</td>
+          <td class="px-4 py-3 text-sm">${d.toLocaleTimeString('th-TH')}</td>
+          <td class="px-4 py-3 text-sm">${r.employeeName}</td>
+          <td class="px-4 py-3 text-sm font-semibold ${typeClass}">${typeText}</td>
+          <td class="px-4 py-3"><img src="${r.photo}" class="w-12 h-9 rounded border" /></td>
+        `;
+        tb.appendChild(tr);
+      });
+    }
+  </script>
+</body>
+</html>
