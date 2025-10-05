@@ -3,83 +3,184 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>บันทึกเวลาเข้า-ออกงาน — หน้าบ้าน</title>
+  <title>บันทึกเวลาเข้า–ออกงาน — หน้าบ้าน</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body{box-sizing:border-box}
-    @media print{.no-print{display:none!important}}
+    /* แอนิเมชันเล็กๆ */
+    .fade-in { animation: fadeIn .5s ease both; }
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    /* ปุ่มคลื่น */
+    .btn{position:relative;overflow:hidden}
+    .btn::after{
+      content:"";position:absolute;inset:auto auto -120% -120%;width:240%;height:240%;
+      background:radial-gradient(transparent 40%,rgba(255,255,255,.25) 41%);
+      transform:rotate(25deg);transition:all .5s ease;
+    }
+    .btn:hover::after{inset:auto auto -80% -80%}
+    /* พิมพ์: ซ่อนบางส่วน */
+    @media print{ .no-print{display:none!important} }
   </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-  <div class="container mx-auto px-4 py-8">
-    <header class="bg-white rounded-lg shadow p-6 mb-6">
-      <h1 class="text-2xl font-bold text-center">บันทึกเวลาเข้า-ออกงาน</h1>
-      <p class="text-center text-gray-600">สำหรับพนักงาน — เลือกชื่อ, ถ่ายรูป, แล้วบันทึก</p>
-      <div class="text-center mt-2">
-        <a href="admin.html" class="text-blue-600 underline no-print">ไปหน้าแอดมิน</a>
-      </div>
-    </header>
-
-    <section class="bg-white rounded-lg shadow p-6">
-      <div class="grid md:grid-cols-3 gap-6">
-        <div>
-          <label class="block text-sm font-medium mb-2">เลือกพนักงาน</label>
-          <select id="employeeSelect" class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500">
-            <option value="">เลือกพนักงาน</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-2">ประเภทการบันทึก</label>
-          <select id="recordType" class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500">
-            <option value="in">เข้างาน</option>
-            <option value="out">ออกงาน</option>
-          </select>
-        </div>
-        <div class="flex items-end text-sm text-gray-600">
-          * ระบบไม่ยอมให้ “ออกงาน” หากยังไม่มี “เข้างาน” ในวันเดียวกัน
+<body class="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 text-gray-700">
+  <!-- Top Nav -->
+  <header class="no-print sticky top-0 z-30 backdrop-blur bg-white/50 border-b border-sky-100">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <!-- โลโก้แบบตัวอักษร -->
+        <div class="h-9 w-9 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 shadow-lg flex items-center justify-center text-white font-bold">TL</div>
+        <div class="leading-tight">
+          <div class="font-bold text-sky-800">TimeLog</div>
+          <div class="text-xs text-sky-600">ระบบบันทึกเวลาเข้า–ออกงาน</div>
         </div>
       </div>
+      <nav class="text-sm">
+        <a href="admin.html" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/70 hover:bg-white text-sky-700 border border-sky-100 shadow-sm transition">
+          <!-- icon -->
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M3 5h18M3 12h18M3 19h18" stroke="#0369a1" stroke-width="2" stroke-linecap="round"/></svg>
+          แอดมิน
+        </a>
+      </nav>
+    </div>
+  </header>
 
-      <div class="mt-6">
-        <h3 class="text-lg font-semibold mb-3">ถ่ายรูปยืนยันตัวตน</h3>
-        <div class="flex flex-col items-center gap-4">
-          <video id="camera" width="320" height="240" autoplay class="border rounded"></video>
-          <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
-          <div class="flex gap-3 flex-wrap justify-center">
-            <button id="openCamBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">เปิดกล้อง</button>
-            <button id="snapBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded">ถ่ายรูป</button>
-            <button id="saveBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">บันทึกเวลา</button>
-            <button id="closeCamBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">ปิดกล้อง</button>
+  <!-- Hero -->
+  <section class="relative">
+    <!-- ลวดลายพื้นหลัง -->
+    <div class="pointer-events-none absolute inset-0">
+      <svg class="opacity-30" width="100%" height="100%">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#bae6fd"/>
+            <stop offset="100%" stop-color="#e0f2fe"/>
+          </linearGradient>
+        </defs>
+        <circle cx="8%" cy="20%" r="120" fill="url(#g1)"/>
+        <circle cx="92%" cy="10%" r="80" fill="#bfdbfe"/>
+        <circle cx="85%" cy="85%" r="140" fill="#e0f2fe"/>
+      </svg>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-4 py-10 md:py-14 relative">
+      <div class="grid md:grid-cols-2 gap-7 items-center">
+        <div class="fade-in">
+          <h1 class="text-3xl md:text-4xl font-extrabold text-sky-900 leading-tight">
+            บันทึกเวลาเข้า–ออกงานได้ง่าย<br class="hidden md:block" />
+            <span class="bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">ปลอดภัย มีภาพยืนยัน</span>
+          </h1>
+          <p class="mt-3 text-sky-700/80">
+            เลือกชื่อพนักงาน ถ่ายรูป แล้วกดบันทึก — ระบบป้องกัน “ออกงาน” ก่อน “เข้างาน” อัตโนมัติ
+          </p>
+
+          <!-- การ์ดสรุป -->
+          <div class="mt-5 grid grid-cols-2 gap-4">
+            <div class="rounded-2xl p-4 bg-white/70 backdrop-blur border border-sky-100 shadow-sm">
+              <div class="text-xs text-sky-600">พนักงานทั้งหมด</div>
+              <div id="statEmployees" class="text-2xl font-bold text-sky-900">0</div>
+            </div>
+            <div class="rounded-2xl p-4 bg-white/70 backdrop-blur border border-sky-100 shadow-sm">
+              <div class="text-xs text-sky-600">บันทึกวันนี้</div>
+              <div id="statToday" class="text-2xl font-bold text-sky-900">0</div>
+            </div>
           </div>
-          <div id="photoPreview" class="hidden">
-            <img id="capturedPhoto" width="160" height="120" class="border rounded" alt="ตัวอย่างรูปถ่าย">
+        </div>
+
+        <!-- การ์ดทำรายการ -->
+        <div class="fade-in rounded-3xl bg-white/80 backdrop-blur border border-sky-100 shadow-xl p-6">
+          <h2 class="text-lg font-semibold text-sky-900 mb-4">ทำรายการบันทึกเวลา</h2>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-2 text-sky-900">เลือกพนักงาน</label>
+              <select id="employeeSelect" class="w-full px-3 py-2 rounded-xl border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-300">
+                <option value="">เลือกพนักงาน</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-2 text-sky-900">ประเภทการบันทึก</label>
+              <select id="recordType" class="w-full px-3 py-2 rounded-xl border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-300">
+                <option value="in">เข้างาน</option>
+                <option value="out">ออกงาน</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-5">
+            <h3 class="text-sm font-semibold text-sky-900 mb-2">ถ่ายรูปยืนยันตัวตน</h3>
+            <div class="flex flex-col items-center gap-3">
+              <div class="rounded-2xl border-2 border-dashed border-sky-200 p-2 bg-sky-50/50">
+                <video id="camera" width="320" height="240" autoplay class="rounded-xl shadow-sm"></video>
+              </div>
+              <canvas id="canvas" width="320" height="240" class="hidden"></canvas>
+
+              <div class="flex flex-wrap gap-2 justify-center">
+                <button id="openCamBtn" class="btn inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl shadow">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M4 7h3l2-2h6l2 2h3v12H4V7z" stroke="white" stroke-width="2"/><circle cx="12" cy="13" r="3.5" stroke="white" stroke-width="2"/></svg>
+                  เปิดกล้อง
+                </button>
+                <button id="snapBtn" class="btn inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl shadow">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><rect x="4" y="7" width="16" height="12" rx="2" stroke="white" stroke-width="2"/><circle cx="12" cy="13" r="3" fill="white"/></svg>
+                  ถ่ายรูป
+                </button>
+                <button id="saveBtn" class="btn inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  บันทึกเวลา
+                </button>
+                <button id="closeCamBtn" class="btn inline-flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl shadow">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+                  ปิดกล้อง
+                </button>
+              </div>
+
+              <div id="photoPreview" class="hidden">
+                <img id="capturedPhoto" width="160" height="120" class="rounded-xl border border-sky-200 shadow-sm bg-white" alt="ตัวอย่างรูปถ่าย" />
+              </div>
+
+              <p class="text-xs text-sky-700/70 mt-1">* ระบบไม่ยอมให้ “ออกงาน” หากยังไม่มี “เข้างาน” ในวันเดียวกัน</p>
+            </div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="bg-white rounded-lg shadow p-6 mt-6">
-      <h2 class="text-xl font-semibold mb-4">บันทึกล่าสุด</h2>
+  <!-- Recent Records -->
+  <section class="max-w-6xl mx-auto px-4 pb-14">
+    <div class="mt-8 rounded-3xl bg-white/80 backdrop-blur border border-sky-100 shadow-xl p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold text-sky-900">บันทึกล่าสุด</h3>
+        <span class="text-xs text-sky-600">แสดงรายการล่าสุด 30 รายการ</span>
+      </div>
       <div class="overflow-x-auto">
         <table class="w-full table-auto">
           <thead>
-            <tr class="bg-gray-50">
-              <th class="px-4 py-3 text-left text-sm">วันที่</th>
-              <th class="px-4 py-3 text-left text-sm">เวลา</th>
-              <th class="px-4 py-3 text-left text-sm">ชื่อ-สกุล</th>
-              <th class="px-4 py-3 text-left text-sm">ประเภท</th>
-              <th class="px-4 py-3 text-left text-sm">รูปภาพ</th>
+            <tr class="bg-sky-50/70 text-sky-900">
+              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">วันที่</th>
+              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">เวลา</th>
+              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">ชื่อ-สกุล</th>
+              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">ประเภท</th>
+              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">รูปภาพ</th>
             </tr>
           </thead>
           <tbody id="timeRecordsBody"></tbody>
         </table>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="no-print border-t border-sky-100 bg-white/70 backdrop-blur">
+    <div class="max-w-6xl mx-auto px-4 py-4 text-xs text-sky-700 flex items-center justify-between">
+      <span>© <span id="year"></span> TimeLog — Fulfill Living</span>
+      <span>ทำงานบนเบราว์เซอร์ (localStorage)</span>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm shadow-lg hidden"></div>
 
   <script>
-    const HOURS_PER_DAY = 8; // ใช้ร่วมกับหลังบ้านในการคำนวณ (ไว้เป็นข้อมูลอ้างอิง)
-
+    const HOURS_PER_DAY = 8; // สำหรับอ้างอิง (ใช้คำนวณในหลังบ้านจริง)
     let employees = JSON.parse(localStorage.getItem('employees')) || [];
     let timeRecords = JSON.parse(localStorage.getItem('timeRecords')) || [];
     let currentPhoto = null, stream = null;
@@ -88,6 +189,8 @@
       bindButtons();
       updateEmployeeSelect();
       renderRecent();
+      updateStats();
+      document.getElementById('year').textContent = new Date().getFullYear();
       window.addEventListener('beforeunload', stopCamera);
     });
 
@@ -102,17 +205,24 @@
       const sel = document.getElementById('employeeSelect');
       sel.innerHTML = '<option value="">เลือกพนักงาน</option>';
       employees.forEach(e=>{
-        const o = document.createElement('option');
-        o.value = e.id; o.textContent = e.name;
+        const o=document.createElement('option'); o.value=e.id; o.textContent=e.name;
         sel.appendChild(o);
       });
     }
 
+    function updateStats(){
+      const todayKey = new Date().toLocaleDateString('th-TH');
+      const todayCount = timeRecords.filter(r => new Date(r.timestamp).toLocaleDateString('th-TH') === todayKey).length;
+      document.getElementById('statEmployees').textContent = employees.length;
+      document.getElementById('statToday').textContent = todayCount;
+    }
+
+    // Camera
     async function startCamera(){
       try{
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user' }, audio:false });
         document.getElementById('camera').srcObject = stream;
-      }catch(e){ alert('เปิดกล้องไม่สำเร็จ: '+e.message); }
+      }catch(e){ showToast('เปิดกล้องไม่สำเร็จ: '+e.message, true); }
     }
     function stopCamera(){
       const v = document.getElementById('camera');
@@ -121,23 +231,25 @@
     }
     function takePhoto(){
       const v = document.getElementById('camera');
-      if(!v.srcObject){ alert('กรุณาเปิดกล้องก่อน'); return; }
+      if(!v.srcObject){ showToast('กรุณาเปิดกล้องก่อน', true); return; }
       const c = document.getElementById('canvas');
-      c.getContext('2d').drawImage(v,0,0,c.width,c.height);
-      currentPhoto = c.toDataURL('image/jpeg',0.85);
+      const ctx = c.getContext('2d'); ctx.drawImage(v,0,0,c.width,c.height);
+      currentPhoto = c.toDataURL('image/jpeg', 0.85);
       document.getElementById('capturedPhoto').src = currentPhoto;
       document.getElementById('photoPreview').classList.remove('hidden');
+      showToast('ถ่ายรูปเรียบร้อย');
     }
 
+    // Record
     function recordTime(){
       const empId = document.getElementById('employeeSelect').value;
       const type = document.getElementById('recordType').value;
-      if(!empId){ alert('กรุณาเลือกพนักงาน'); return; }
-      if(!currentPhoto){ alert('กรุณาถ่ายรูปยืนยันก่อน'); return; }
 
-      // ห้าม OUT ถ้าไม่มี IN ในวันเดียวกัน
+      if(!empId){ showToast('กรุณาเลือกพนักงาน', true); return; }
+      if(!currentPhoto){ showToast('กรุณาถ่ายรูปยืนยันก่อน', true); return; }
+
       if(type === 'out' && !hasOpenInToday(parseInt(empId))){
-        alert('ยังไม่มี “เข้างาน” ในวันเดียวกัน'); return;
+        showToast('ยังไม่มี “เข้างาน” ในวันเดียวกัน', true); return;
       }
 
       const emp = employees.find(e=>e.id==empId);
@@ -152,50 +264,70 @@
       timeRecords.push(rec);
       localStorage.setItem('timeRecords', JSON.stringify(timeRecords));
 
-      currentPhoto=null;
+      // reset
+      currentPhoto = null;
       document.getElementById('photoPreview').classList.add('hidden');
       stopCamera();
+
       renderRecent();
-      alert(`บันทึกเวลา${type==='in'?'เข้างาน':'ออกงาน'}เรียบร้อยแล้ว`);
+      updateStats();
+      showToast(`บันทึกเวลา${type==='in'?'เข้างาน':'ออกงาน'}เรียบร้อย`);
     }
 
     function hasOpenInToday(empId){
       const todayKey = new Date().toLocaleDateString('th-TH');
       const ins = timeRecords
-        .filter(r=>r.employeeId===empId && r.type==='in' && isSameDay(r.timestamp,todayKey))
+        .filter(r=>r.employeeId===empId && r.type==='in' && isSameDay(r.timestamp, todayKey))
         .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
       for(const inRec of ins){
         const out = timeRecords.find(r =>
           r.employeeId===empId && r.type==='out' &&
-          isSameDay(r.timestamp,todayKey) &&
+          isSameDay(r.timestamp, todayKey) &&
           new Date(r.timestamp) > new Date(inRec.timestamp)
         );
         if(!out) return true;
       }
       return false;
     }
-    function isSameDay(iso, keyTH){ return new Date(iso).toLocaleDateString('th-TH')===keyTH; }
+    function isSameDay(iso, keyTH){ return new Date(iso).toLocaleDateString('th-TH') === keyTH; }
 
     function renderRecent(){
       const tb = document.getElementById('timeRecordsBody');
       tb.innerHTML='';
       [...timeRecords].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))
-      .slice(0,30) // แสดงล่าสุด 30 รายการพอ
-      .forEach(r=>{
-        const d=new Date(r.timestamp);
-        const tr=document.createElement('tr');
-        const typeText=r.type==='in'?'เข้างาน':'ออกงาน';
-        const typeClass=r.type==='in'?'text-green-600':'text-red-600';
-        tr.className='border-b hover:bg-gray-50';
-        tr.innerHTML=`
-          <td class="px-4 py-3 text-sm">${d.toLocaleDateString('th-TH')}</td>
-          <td class="px-4 py-3 text-sm">${d.toLocaleTimeString('th-TH')}</td>
-          <td class="px-4 py-3 text-sm">${r.employeeName}</td>
-          <td class="px-4 py-3 text-sm font-semibold ${typeClass}">${typeText}</td>
-          <td class="px-4 py-3"><img src="${r.photo}" class="w-12 h-9 rounded border" /></td>
-        `;
-        tb.appendChild(tr);
-      });
+        .slice(0,30)
+        .forEach(r=>{
+          const d=new Date(r.timestamp);
+          const typeText=r.type==='in'?'เข้างาน':'ออกงาน';
+          const typeClass=r.type==='in'?'text-emerald-700 bg-emerald-50':'text-rose-700 bg-rose-50';
+          const tr=document.createElement('tr');
+          tr.className='border-b border-sky-100 hover:bg-sky-50/50';
+          tr.innerHTML = `
+            <td class="px-4 py-3 text-xs md:text-sm">${d.toLocaleDateString('th-TH')}</td>
+            <td class="px-4 py-3 text-xs md:text-sm">${d.toLocaleTimeString('th-TH')}</td>
+            <td class="px-4 py-3 text-xs md:text-sm">${r.employeeName}</td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${typeClass}">
+                ${typeText}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <img src="${r.photo}" class="w-12 h-9 rounded-lg border border-sky-200 shadow-sm bg-white" />
+            </td>
+          `;
+          tb.appendChild(tr);
+        });
+    }
+
+    // Toast helper
+    let toastTimer;
+    function showToast(text, isError=false){
+      const el = document.getElementById('toast');
+      el.textContent = text;
+      el.className = `fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm shadow-lg ${isError?'bg-rose-600':'bg-sky-700'}`;
+      el.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=> el.classList.add('hidden'), 2200);
     }
   </script>
 </body>
