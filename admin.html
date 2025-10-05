@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>แอดมิน — ระบบบันทึกเวลา</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{box-sizing:border-box}
+    @media print{.no-print{display:none!important}.print-only{display:block!important}}
+    .print-only{display:none}
+  </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 to-purple-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <header class="bg-white rounded-lg shadow p-6 mb-6">
+      <h1 class="text-2xl font-bold text-center">หลังบ้าน — จัดการพนักงาน & รายงาน</h1>
+      <p class="text-center text-gray-600">ข้อมูลเก็บในเบราว์เซอร์ (localStorage)</p>
+      <div class="text-center mt-2"><a href="index.html" class="text-blue-600 underline no-print">กลับหน้าบ้าน</a></div>
+    </header>
+
+    <!-- Controls -->
+    <section class="bg-white rounded-lg shadow p-6 mb-6 no-print">
+      <div class="grid md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">ชื่อ-สกุล</label>
+          <input id="employeeName" class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500" placeholder="กรอกชื่อ-สกุล">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">เงินเดือนต่อเดือน (บาท)</label>
+          <input id="monthlySalary" type="number" min="0" class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500" placeholder="กรอกเงินเดือน">
+        </div>
+        <div class="flex items-end gap-2">
+          <button id="addEmpBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">เพิ่มพนักงาน</button>
+          <button id="exportCsvBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded">Export CSV</button>
+          <button id="printBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">พิมพ์</button>
+          <button id="clearAllBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">ล้างข้อมูล</button>
+        </div>
+      </div>
+      <div class="mt-4">
+        <label class="block text-sm font-medium mb-1">ชั่วโมงทำงานมาตรฐาน/วัน</label>
+        <input id="hoursPerDay" type="number" min="1" value="8" class="w-32 px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500">
+        <span class="text-sm text-gray-500">ใช้คำนวณค่าแรง/ชั่วโมง = เงินเดือน / (30 * ชั่วโมง/วัน)</span>
+      </div>
+    </section>
+
+    <!-- Employee summary -->
+    <section class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">พนักงาน & สรุปรายเดือน</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full table-auto">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-4 py-3 text-left text-sm">#</th>
+              <th class="px-4 py-3 text-left text-sm">ชื่อ-สกุล</th>
+              <th class="px-4 py-3 text-left text-sm">เงินเดือน</th>
+              <th class="px-4 py-3 text-left text-sm">ชั่วโมงรวม (เดือนนี้)</th>
+              <th class="px-4 py-3 text-left text-sm">เงินที่ได้รับ (≈)</th>
+              <th class="px-4 py-3 text-left text-sm no-print">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="employeeTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Records -->
+    <section class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-xl font-semibold mb-4">บันทึกเวลา (ใหม่สุดก่อน)</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full table-auto">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-4 py-3 text-left text-sm">วันที่</th>
+              <th class="px-4 py-3 text-left text-sm">เวลา</th>
+              <th class="px-4 py-3 text-left text-sm">ชื่อ-สกุล</th>
+              <th class="px-4 py-3 text-left text-sm">ประเภท</th>
+              <th class="px-4 py-3 text-left text-sm">รูปภาพ</th>
+            </tr>
+          </thead>
+          <tbody id="timeRecordsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Print header -->
+    <div class="print-only">
+      <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold">รายงานการทำงานประจำเดือน</h1>
+        <p class="text-gray-600">วันที่พิมพ์: <span id="printDate"></span></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --------- SIMPLE PIN GUARD ----------
+    const ADMIN_PIN = '2468'; // แก้ PIN ได้ที่นี่
+    (function requirePin(){
+      const fromQuery = new URLSearchParams(location.search).get('pin');
+      const pin = fromQuery || prompt('กรุณาใส่ PIN หลังบ้าน:');
+      if(pin !== ADMIN_PIN){ alert('PIN ไม่ถูกต้อง'); location.href='index.html'; }
+    })();
+
+    // --------- STATE ----------
+    let employees = JSON.parse(localStorage.getItem('employees')) || [];
+    let timeRecords = JSON.parse(localStorage.getItem('timeRecords')) || [];
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      bindButtons();
+      renderAll();
+    });
+
+    function bindButtons(){
+      document.getElementById('addEmpBtn').addEventListener('click', addEmployee);
+      document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
+      document.getElementById('printBtn').addEventListener('click', printReport);
+      document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
+      document.getElementById('hoursPerDay').addEventListener('change', renderAll);
+    }
+
+    function saveEmployees(){ localStorage.setItem('employees', JSON.stringify(employees)); }
+    function saveRecords(){ localStorage.setItem('timeRecords', JSON.stringify(timeRecords)); }
+
+    // --------- EMPLOYEES ----------
+    function addEmployee(){
+      const name = document.getElementById('employeeName').value.trim();
+      const salary = parseFloat(document.getElementById('monthlySalary').value);
+      if(!name || !salary || salary<=0){ alert('กรุณากรอกข้อมูลพนักงานให้ถูกต้อง'); return; }
+      employees.push({id: Date.now(), name, monthlySalary: salary});
+      saveEmployees();
+      document.getElementById('employeeName').value='';
+      document.getElementById('monthlySalary').value='';
+      renderAll();
+      alert('เพิ่มพนักงานเรียบร้อย');
+    }
+
+    function deleteEmployee(id){
+      if(!confirm('ลบพนักงานและบันทึกเวลาที่เกี่ยวข้องทั้งหมด?')) return;
+      employees = employees.filter(e=>e.id!==id);
+      timeRecords = timeRecords.filter(r=>r.employeeId!==id);
+      saveEmployees(); saveRecords();
+      renderAll();
+    }
+
+    // --------- AGGREGATION ----------
+    function getMonthHoursForEmp(empId){
+      const now = new Date();
+      const m = now.getMonth(), y = now.getFullYear();
+      // ดึงเฉพาะเรคอร์ดเดือนนี้ของพนักงาน
+      const recs = timeRecords
+        .filter(r=>r.employeeId===empId)
+        .filter(r=>{
+          const d=new Date(r.timestamp);
+          return d.getMonth()===m && d.getFullYear()===y;
+        })
+        .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+
+      // จับคู่ IN→OUT แล้วรวมชั่วโมง
+      let totalMs = 0;
+      let openIn = null;
+      const sameDay = (a,b)=> a.toDateString()===b.toDateString();
+
+      recs.forEach(r=>{
+        const d = new Date(r.timestamp);
+        if(r.type==='in'){
+          // ถ้ามี IN ค้างข้ามวัน ให้ทิ้งของเก่าแล้วเริ่มใหม่ (กันข้อมูลผิด)
+          if(openIn && !sameDay(new Date(openIn.timestamp), d)) openIn=null;
+          openIn = r;
+        }else if(r.type==='out' && openIn){
+          // ต้องเป็นวันเดียวกันเท่านั้น
+          const dIn = new Date(openIn.timestamp);
+          if(sameDay(dIn, d) && d > dIn){
+            totalMs += (d - dIn);
+            openIn = null;
+          }
+        }
+      });
+      return totalMs / (1000*60*60); // เป็นชั่วโมง
+    }
+
+    function renderEmployeesTable(){
+      const hrsPerDay = Math.max(1, parseFloat(document.getElementById('hoursPerDay').value) || 8);
+      const tb = document.getElementById('employeeTableBody');
+      tb.innerHTML='';
+      employees.forEach((e,i)=>{
+        const hours = getMonthHoursForEmp(e.id);
+        const hourlyRate = e.monthlySalary / (30*hrsPerDay);
+        const earned = hours * hourlyRate;
+        const tr=document.createElement('tr');
+        tr.className='border-b hover:bg-gray-50';
+        tr.innerHTML = `
+          <td class="px-4 py-3 text-sm">${i+1}</td>
+          <td class="px-4 py-3 text-sm">${e.name}</td>
+          <td class="px-4 py-3 text-sm">${e.monthlySalary.toLocaleString()} บาท</td>
+          <td class="px-4 py-3 text-sm">${hours.toFixed(2)} ชม.</td>
+          <td class="px-4 py-3 text-sm font-semibold text-green-700">${earned.toLocaleString('th-TH', {maximumFractionDigits:2})} บาท</td>
+          <td class="px-4 py-3 text-sm no-print">
+            <button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded" onclick="deleteEmployee(${e.id})">ลบ</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      });
+    }
+
+    // --------- RECORDS VIEW ----------
+    function renderRecordsTable(){
+      const tb = document.getElementById('timeRecordsBody');
+      tb.innerHTML='';
+      [...timeRecords].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).forEach(r=>{
+        const d=new Date(r.timestamp);
+        const typeText=r.type==='in'?'เข้างาน':'ออกงาน';
+        const typeClass=r.type==='in'?'text-green-600':'text-red-600';
+        const tr=document.createElement('tr');
+        tr.className='border-b hover:bg-gray-50';
+        tr.innerHTML=`
+          <td class="px-4 py-3 text-sm">${d.toLocaleDateString('th-TH')}</td>
+          <td class="px-4 py-3 text-sm">${d.toLocaleTimeString('th-TH')}</td>
+          <td class="px-4 py-3 text-sm">${r.employeeName}</td>
+          <td class="px-4 py-3 text-sm font-semibold ${typeClass}">${typeText}</td>
+          <td class="px-4 py-3 text-sm"><img src="${r.photo}" class="w-12 h-9 rounded border" /></td>
+        `;
+        tb.appendChild(tr);
+      });
+    }
+
+    function renderAll(){
+      renderEmployeesTable();
+      renderRecordsTable();
+    }
+
+    // --------- UTIL ACTIONS ----------
+    function exportCSV(){
+      const rows = [
+        ['id','employeeId','employeeName','type','timestamp','photoDataUrl']
+      ];
+      timeRecords.forEach(r=>{
+        rows.push([r.id, r.employeeId, r.employeeName, r.type, r.timestamp, r.photo]);
+      });
+      const csv = rows.map(r=>r.map(x=>{
+        const s=String(x??'');
+        // escape CSV
+        return `"${s.replace(/"/g,'""')}"`;
+      }).join(',')).join('\n');
+      downloadFile(csv, `time_records_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
+    }
+
+    function printReport(){
+      document.getElementById('printDate').textContent = new Date().toLocaleDateString('th-TH');
+      window.print();
+    }
+
+    function clearAllData(){
+      if(!confirm('ล้าง employees + timeRecords ทั้งหมด?')) return;
+      localStorage.removeItem('employees');
+      localStorage.removeItem('timeRecords');
+      employees=[]; timeRecords=[];
+      renderAll();
+      alert('ล้างข้อมูลเรียบร้อย');
+    }
+
+    function downloadFile(content, filename, mime){
+      const blob = new Blob([content],{type:mime});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download=filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
