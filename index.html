@@ -101,7 +101,7 @@
     </div>
   </main>
 
-  <!-- Recent Records -->
+  <!-- Recent Records (คงไว้) -->
   <section class="max-w-6xl mx-auto px-4 pb-14">
     <div class="rounded-3xl bg-white/80 backdrop-blur border border-sky-100 shadow-xl p-6">
       <div class="flex items-center justify-between mb-3">
@@ -125,31 +125,6 @@
     </div>
   </section>
 
-  <!-- สรุปเงินเดือนรายวัน -->
-  <section class="max-w-6xl mx-auto px-4 pb-14 mt-10">
-    <div class="rounded-3xl bg-white/80 backdrop-blur border border-sky-100 shadow-xl p-6">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-semibold text-sky-900">สรุปเงินเดือนรายวัน (เดือนนี้)</h3>
-        <button onclick="updateSalaryTable()" class="btn bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl shadow text-sm">
-          คำนวณใหม่
-        </button>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full table-auto">
-          <thead>
-            <tr class="bg-sky-50/70 text-sky-900">
-              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">ชื่อ-สกุล</th>
-              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">เงินเดือนต่อเดือน</th>
-              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">วันทำงาน</th>
-              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">รายได้ (บาท)</th>
-            </tr>
-          </thead>
-          <tbody id="salaryTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
   <footer class="no-print border-t border-sky-100 bg-white/70 backdrop-blur">
     <div class="max-w-6xl mx-auto px-4 py-4 text-xs text-sky-700 flex items-center justify-between">
       <span>© <span id="year"></span> TimeLog</span>
@@ -160,9 +135,9 @@
   <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm shadow-lg hidden"></div>
 
   <script>
-    // ====== ตั้งค่าและสเตต ======
-    const MAX_DIM  = 1024;   // ย่อด้านยาวสุด
-    const QUALITY  = 0.72;   // คุณภาพ JPEG
+    // ====== ตั้งค่าบีบอัดรูป ======
+    const MAX_DIM  = 1024;
+    const QUALITY  = 0.72;
 
     let employees   = JSON.parse(localStorage.getItem('employees')) || [];
     let timeRecords = JSON.parse(localStorage.getItem('timeRecords')) || [];
@@ -176,32 +151,18 @@
       updateEmployeeSelect();
       renderRecent();
       updateStats();
-      updateSalaryTable();
       document.getElementById('year').textContent = new Date().getFullYear();
     });
 
-    // ====== UI helpers ======
-    function showToast(text,isError=false){
-      const el=document.getElementById('toast');
-      el.textContent=text;
-      el.className=`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm shadow-lg ${isError?'bg-rose-600':'bg-sky-700'}`;
-      el.classList.remove('hidden');
-      clearTimeout(window.__toastTimer);
-      window.__toastTimer=setTimeout(()=>el.classList.add('hidden'),2200);
-    }
-
-    // ====== รายชื่อพนักงาน ======
     function updateEmployeeSelect(){
       const sel = document.getElementById('employeeSelect');
       sel.innerHTML = '<option value="">เลือกพนักงาน</option>';
       employees.forEach(e=>{
-        const o=document.createElement('option');
-        o.value=e.id; o.textContent=e.name;
+        const o=document.createElement('option'); o.value=e.id; o.textContent=e.name;
         sel.appendChild(o);
       });
     }
 
-    // ====== สถิติ ======
     function updateStats(){
       const todayKey = new Date().toLocaleDateString('th-TH');
       const todayCount = timeRecords.filter(r => new Date(r.timestamp).toLocaleDateString('th-TH') === todayKey).length;
@@ -215,53 +176,42 @@
       if(!file) return;
       try{
         const beforeKB = (file.size/1024|0);
-        const dataURL = await compressFileToDataURL(file, MAX_DIM, QUALITY);
+        const dataURL  = await compressFileToDataURL(file, MAX_DIM, QUALITY);
         const afterKB  = Math.max(1, Math.floor((dataURL.length * 3/4) / 1024));
         currentPhoto = dataURL;
         showPreview(dataURL);
         showToast(`บีบอัดรูป: ${beforeKB}KB → ${afterKB}KB`);
       }catch(err){
         console.error(err);
-        showToast('บีบอัดรูปไม่สำเร็จ',true);
+        showToast('บีบอัดรูปไม่สำเร็จ', true);
       }
     }
 
     async function compressFileToDataURL(file, maxDim, quality){
-      // ใช้ ImageBitmap ถ้าได้ จะเร็วและประหยัดเมม
       let imgBitmap;
-      try { imgBitmap = await createImageBitmap(file); }
-      catch {
-        // fallback
+      try{ imgBitmap = await createImageBitmap(file); }
+      catch{
         const fr = new FileReader();
         const dataUrl = await new Promise((res,rej)=>{ fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(file); });
         const img = new Image(); await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; img.src=dataUrl; });
         imgBitmap = img;
       }
-
-      const sw = imgBitmap.width  || imgBitmap.naturalWidth;
-      const sh = imgBitmap.height || imgBitmap.naturalHeight;
-      const {w,h} = getScaledSize(sw,sh,maxDim);
-
-      const canvas=document.createElement('canvas');
-      canvas.width=w; canvas.height=h;
-      const ctx=canvas.getContext('2d');
-      ctx.imageSmoothingEnabled=true;
-      ctx.imageSmoothingQuality='high';
+      const sw=imgBitmap.width||imgBitmap.naturalWidth, sh=imgBitmap.height||imgBitmap.naturalHeight;
+      const {w,h}=getScaledSize(sw,sh,maxDim);
+      const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d'); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
       ctx.drawImage(imgBitmap,0,0,w,h);
-
-      // ใช้ toBlob แล้วค่อยแปลงเป็น dataURL จะเล็กกว่าหลายกรณี
       if(canvas.toBlob){
         const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg',quality));
         const fr2 = new FileReader();
-        return await new Promise((res)=>{ fr2.onload=()=>res(fr2.result); fr2.readAsDataURL(blob); });
+        return await new Promise(res=>{ fr2.onload=()=>res(fr2.result); fr2.readAsDataURL(blob); });
       }
       return canvas.toDataURL('image/jpeg',quality);
     }
 
     function getScaledSize(sw,sh,maxDim){
       if(sw<=maxDim && sh<=maxDim) return {w:sw,h:sh};
-      const r = sw/sh;
-      return r>=1 ? {w:maxDim, h:Math.round(maxDim/r)} : {w:Math.round(maxDim*r), h:maxDim};
+      const r=sw/sh; return r>=1?{w:maxDim,h:Math.round(maxDim/r)}:{w:Math.round(maxDim*r),h:maxDim};
     }
 
     function showPreview(url){
@@ -270,7 +220,7 @@
       img.src=url; img.classList.remove('hidden'); ph.classList.add('hidden');
     }
 
-    // ====== ตรวจ IN ก่อน OUT (ภายในวันเดียวกัน) ======
+    // ====== บันทึกเวลา ======
     function hasOpenInToday(empId){
       const todayKey=new Date().toLocaleDateString('th-TH');
       const ins=timeRecords
@@ -282,32 +232,20 @@
           new Date(r.timestamp).toLocaleDateString('th-TH')===todayKey &&
           new Date(r.timestamp) > new Date(inRec.timestamp)
         );
-        if(!out) return true; // มี IN ที่ยังไม่ถูกปิดด้วย OUT
+        if(!out) return true;
       }
       return false;
     }
 
-    // ====== บันทึกเวลา ======
     function recordTime(){
       const empId = document.getElementById('employeeSelect').value;
       const type  = document.getElementById('recordType').value;
-      if(!empId)   return showToast('กรุณาเลือกพนักงาน',true);
-      if(!currentPhoto) return showToast('กรุณาถ่ายรูปยืนยันก่อน',true);
-
-      // ป้องกัน OUT หากไม่มี IN ของวันเดียวกันที่ยังเปิดอยู่
-      if(type==='out' && !hasOpenInToday(parseInt(empId))){
-        return showToast('ยังไม่มี “เข้างาน” ในวันเดียวกัน',true);
-      }
+      if(!empId) return showToast('กรุณาเลือกพนักงาน', true);
+      if(!currentPhoto) return showToast('กรุณาถ่ายรูปยืนยันก่อน', true);
+      if(type==='out' && !hasOpenInToday(parseInt(empId))) return showToast('ยังไม่มี “เข้างาน” ในวันเดียวกัน', true);
 
       const emp = employees.find(e=>e.id==empId);
-      const rec = {
-        id: Date.now(),
-        employeeId: parseInt(empId),
-        employeeName: emp.name,
-        type,
-        timestamp: new Date().toISOString(),
-        photo: currentPhoto
-      };
+      const rec = { id:Date.now(), employeeId:+empId, employeeName:emp.name, type, timestamp:new Date().toISOString(), photo:currentPhoto };
       timeRecords.push(rec);
       localStorage.setItem('timeRecords', JSON.stringify(timeRecords));
 
@@ -319,7 +257,6 @@
 
       renderRecent();
       updateStats();
-      updateSalaryTable();
       showToast(`บันทึกเวลา${type==='in'?'เข้างาน':'ออกงาน'}เรียบร้อย`);
     }
 
@@ -350,46 +287,15 @@
       });
     }
 
-    // ====== สรุปเงินเดือนรายวัน (หารตามจำนวนวันจริงของเดือน) ======
-    function updateSalaryTable(){
-      const tbody = document.getElementById('salaryTableBody');
-      tbody.innerHTML='';
-
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;                   // 1..12
-      const daysInMonth = new Date(year, month, 0).getDate(); // จำนวนวันจริงของเดือนนี้
-
-      employees.forEach(emp=>{
-        const workDays = countWorkDays(emp.id, month, year);     // นับเฉพาะวันที่มี "เข้างาน"
-        const dailySalary = emp.monthlySalary / daysInMonth;     // เงินรายวัน
-        const earnedSalary = workDays * dailySalary;              // ยอดที่ควรได้รับ
-
-        const tr=document.createElement('tr');
-        tr.className='border-b border-sky-100 hover:bg-sky-50/50';
-        tr.innerHTML=`
-          <td class="px-4 py-3 text-sm text-sky-900">${emp.name}</td>
-          <td class="px-4 py-3 text-sm text-sky-900">${emp.monthlySalary.toLocaleString()} บาท</td>
-          <td class="px-4 py-3 text-sm text-sky-900">${workDays} วัน</td>
-          <td class="px-4 py-3 text-sm font-semibold text-sky-800">
-            ${earnedSalary.toLocaleString('th-TH',{maximumFractionDigits:2})} บาท
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    // นับจำนวน "วัน" ที่พนักงานมาทำงานในเดือน/ปีนั้น (เข้างานอย่างน้อย 1 ครั้ง = นับ 1 วัน)
-    function countWorkDays(empId, month, year){
-      const setDays = new Set();
-      timeRecords.forEach(r=>{
-        if(r.employeeId!==empId || r.type!=='in') return;
-        const d = new Date(r.timestamp);
-        if(d.getFullYear()===year && (d.getMonth()+1)===month){
-          setDays.add(d.toDateString());
-        }
-      });
-      return setDays.size;
+    // ====== Toast ======
+    let toastTimer;
+    function showToast(text,isError=false){
+      const el=document.getElementById('toast');
+      el.textContent=text;
+      el.className=`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm shadow-lg ${isError?'bg-rose-600':'bg-sky-700'}`;
+      el.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer=setTimeout(()=>el.classList.add('hidden'),2200);
     }
   </script>
 </body>
