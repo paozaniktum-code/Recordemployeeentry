@@ -1,43 +1,250 @@
-function renderEmployeesTable(){
-  const tb = document.getElementById('employeeTableBody');
-  tb.innerHTML='';
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>หลังบ้าน — ระบบบันทึกเวลา (รายวัน + OT เวรเกิน)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{box-sizing:border-box;font-family:'Sarabun',sans-serif;background:linear-gradient(to bottom right,#e0f2fe,#bae6fd)}
+    @media print{.no-print{display:none!important}}
+  </style>
+</head>
+<body class="p-6 text-gray-800">
+  <div class="max-w-6xl mx-auto bg-white/80 backdrop-blur rounded-3xl shadow-lg p-6 md:p-8">
+    <header class="flex flex-wrap items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-sky-900">หลังบ้าน — ระบบบันทึกเวลา</h1>
+      <a href="index.html" class="no-print px-3 py-2 rounded-xl bg-white/70 hover:bg-white text-sky-700 border border-sky-100 shadow-sm">หน้าบ้าน</a>
+    </header>
 
-  const list = employees
-    .filter(e => !filterName || e.name.toLowerCase().includes(filterName));
+    <!-- Add Employee -->
+    <section class="bg-white/90 border border-sky-100 rounded-2xl shadow p-5 mb-8">
+      <h2 class="text-lg font-semibold text-sky-900 mb-4">เพิ่มพนักงาน</h2>
+      <div class="grid md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm mb-2 text-sky-900">ชื่อ-สกุล</label>
+          <input id="empName" class="w-full px-3 py-2 rounded-xl border border-sky-200" placeholder="กรอกชื่อ-สกุล">
+        </div>
+        <div>
+          <label class="block text-sm mb-2 text-sky-900">เงินเดือน/เดือน (บาท)</label>
+          <input id="empSalary" type="number" min="0" class="w-full px-3 py-2 rounded-xl border border-sky-200" placeholder="เช่น 18000">
+        </div>
+        <div>
+          <label class="block text-sm mb-2 text-sky-900">ประเภทพนักงาน</label>
+          <select id="empType" class="w-full px-3 py-2 rounded-xl border border-sky-200">
+            <option value="daily">ทดลองงาน (รายวัน)</option>
+            <option value="monthly">ประจำ (รายเดือน + OT เวรเกิน)</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button onclick="addEmployee()" class="w-full bg-sky-600 hover:bg-sky-700 text-white rounded-xl py-2 shadow">เพิ่มพนักงาน</button>
+        </div>
+      </div>
+    </section>
 
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth() + 1;
-  const daysInMonth = new Date(y, m, 0).getDate();
+    <!-- Employee Table -->
+    <section class="bg-white/90 border border-sky-100 rounded-2xl shadow p-5 mb-8">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-sky-900">พนักงาน & สรุปการคำนวณ (เดือนนี้)</h2>
+      </div>
 
-  list.forEach((e,i)=>{
-    const { totalHours, compDays, leftover } = getMonthCompResult(e.id);
+      <div class="no-print flex flex-wrap gap-2 mb-3">
+        <button onclick="exportMonthlyCSV()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl shadow text-sm">Export CSV (สรุปรายเดือน)</button>
+        <button onclick="exportMonthlyExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow text-sm">Export Excel (.xls)</button>
+        <button onclick="exportRecordsCSV()" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl shadow text-sm">Export CSV (บันทึกดิบ)</button>
+      </div>
 
-    // จ่ายเป็น "รายวันตามจำนวนวันจริงของเดือน" โดยใช้ 'วันชดเชย'
-    const daily = e.monthlySalary / daysInMonth;
-    const earned = (ALLOW_COMP ? compDays : 0) * daily;
+      <div class="overflow-x-auto">
+        <table class="w-full table-auto">
+          <thead>
+            <tr class="bg-sky-50/70 text-sky-900">
+              <th class="px-3 py-2 text-left">#</th>
+              <th class="px-3 py-2 text-left">ชื่อ-สกุล</th>
+              <th class="px-3 py-2 text-left">ประเภท</th>
+              <th class="px-3 py-2 text-left">เงินเดือน</th>
+              <th class="px-3 py-2 text-left">สรุปเวลา</th>
+              <th class="px-3 py-2 text-left">รายได้ (บาท)</th>
+              <th class="px-3 py-2 text-left no-print">ลบ</th>
+            </tr>
+          </thead>
+          <tbody id="employeeTableBody"></tbody>
+        </table>
+      </div>
+    </section>
 
-    const performanceText = ALLOW_COMP
-      ? `${compDays} วัน (คงเหลือ ${leftover.toFixed(2)} ชม., รวม ${totalHours.toFixed(2)} ชม.)`
-      : `${totalHours.toFixed(2)} ชม. (ปิดโหมดชดเชย)` ;
+    <!-- Records -->
+    <section class="bg-white/90 border border-sky-100 rounded-2xl shadow p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-sky-900">บันทึกเวลา (ล่าสุด)</h2>
+        <button onclick="window.print()" class="no-print bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow">พิมพ์รายงาน</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full table-auto">
+          <thead>
+            <tr class="bg-sky-50/70 text-sky-900">
+              <th class="px-3 py-2">วันที่</th>
+              <th class="px-3 py-2">เวลา</th>
+              <th class="px-3 py-2">ชื่อ-สกุล</th>
+              <th class="px-3 py-2">ประเภท</th>
+            </tr>
+          </thead>
+          <tbody id="recordTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
 
-    const tr=document.createElement('tr');
-    tr.className='border-b border-sky-100 hover:bg-sky-50/50';
-    tr.innerHTML = `
-      <td class="px-4 py-3 text-xs md:text-sm">${i+1}</td>
-      <td class="px-4 py-3 text-xs md:text-sm">${e.name}</td>
-      <td class="px-4 py-3 text-xs md:text-sm">${e.monthlySalary.toLocaleString()} บาท</td>
-      <td class="px-4 py-3 text-xs md:text-sm">${performanceText}</td>
-      <td class="px-4 py-3 text-xs md:text-sm font-semibold text-emerald-700">
-        ${earned.toLocaleString('th-TH',{maximumFractionDigits:2})} บาท
-      </td>
-      <td class="px-4 py-3 text-xs md:text-sm no-print">
-        <button class="btn bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded-lg" onclick="deleteEmployee(${e.id})">ลบ</button>
-      </td>
-    `;
-    tb.appendChild(tr);
-  });
+  <script>
+    const SHIFT_HOURS = 12;
+    const MAX_PAIR_HOURS = 24;
+    let employees = JSON.parse(localStorage.getItem('employees')) || [];
+    let timeRecords = JSON.parse(localStorage.getItem('timeRecords')) || [];
 
-  document.getElementById('empCountShown').textContent =
-    `แสดง ${list.length} / ทั้งหมด ${employees.length} คน`;
-}
+    document.addEventListener('DOMContentLoaded', renderAll);
+
+    function saveEmployees(){ localStorage.setItem('employees', JSON.stringify(employees)); }
+    function saveRecords(){ localStorage.setItem('timeRecords', JSON.stringify(timeRecords)); }
+
+    function addEmployee(){
+      const name=document.getElementById('empName').value.trim();
+      const salary=parseFloat(document.getElementById('empSalary').value);
+      const type=document.getElementById('empType').value;
+      if(!name||!salary){alert('กรุณากรอกข้อมูลให้ครบ');return;}
+      employees.push({id:Date.now(),name,monthlySalary:salary,empType:type});
+      saveEmployees();
+      document.getElementById('empName').value='';
+      document.getElementById('empSalary').value='';
+      renderAll();
+    }
+
+    function deleteEmployee(id){
+      if(!confirm('ลบพนักงานคนนี้?'))return;
+      employees=employees.filter(e=>e.id!==id);
+      timeRecords=timeRecords.filter(r=>r.employeeId!==id);
+      saveEmployees();saveRecords();
+      renderAll();
+    }
+
+    function getMonthWorkResult(empId){
+      const now=new Date(),m=now.getMonth(),y=now.getFullYear();
+      const recs=timeRecords.filter(r=>r.employeeId===empId)
+        .filter(r=>{const d=new Date(r.timestamp);return d.getMonth()===m&&d.getFullYear()===y;})
+        .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+
+      let totalWorkHours=0,openIn=null;
+      for(const r of recs){
+        if(r.type==='in')openIn=r;
+        else if(r.type==='out'&&openIn){
+          const diff=(new Date(r.timestamp)-new Date(openIn.timestamp))/36e5;
+          if(diff>0) totalWorkHours+=Math.min(diff,SHIFT_HOURS);
+          openIn=null;
+        }
+      }
+      const totalShifts=Math.floor(totalWorkHours/SHIFT_HOURS);
+      const leftover=+(totalWorkHours%SHIFT_HOURS).toFixed(2);
+      return {totalWorkHours:+totalWorkHours.toFixed(2),totalShifts,leftover};
+    }
+
+    function renderEmployeesTable(){
+      const tb=document.getElementById('employeeTableBody');tb.innerHTML='';
+      const now=new Date(),daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+
+      employees.forEach((e,i)=>{
+        const {totalWorkHours,totalShifts,leftover}=getMonthWorkResult(e.id);
+        const dailyRate=e.monthlySalary/daysInMonth;
+        let earned=0,desc='';
+
+        if(e.empType==='daily'){
+          earned=totalShifts*dailyRate;
+          desc=`ทดลองงาน • ${totalShifts} เวร (${totalWorkHours} ชม., เหลือ ${leftover} ชม.)`;
+        }else{
+          const baseShifts=daysInMonth;
+          const otShifts=Math.max(0,totalShifts-baseShifts);
+          const otPay=otShifts*dailyRate;
+          earned=e.monthlySalary+otPay;
+          desc=`ประจำ • ${totalShifts} เวร (ฐาน ${baseShifts}, OT ${otShifts}) • ${totalWorkHours} ชม.`;
+        }
+
+        const tr=document.createElement('tr');
+        tr.className='border-b border-sky-100 hover:bg-sky-50/50';
+        tr.innerHTML=`
+          <td class="px-3 py-2">${i+1}</td>
+          <td class="px-3 py-2">${e.name}</td>
+          <td class="px-3 py-2">${e.empType==='daily'?'ทดลองงาน':'ประจำ'}</td>
+          <td class="px-3 py-2">${e.monthlySalary.toLocaleString()} บาท</td>
+          <td class="px-3 py-2">${desc}</td>
+          <td class="px-3 py-2 font-semibold text-emerald-700">${earned.toLocaleString('th-TH',{maximumFractionDigits:2})} บาท</td>
+          <td class="px-3 py-2 no-print"><button onclick="deleteEmployee(${e.id})" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded">ลบ</button></td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    function renderRecordsTable(){
+      const tb=document.getElementById('recordTableBody');tb.innerHTML='';
+      [...timeRecords].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,50).forEach(r=>{
+        const d=new Date(r.timestamp);
+        const t=r.type==='in'?'เข้างาน':'ออกงาน';
+        const color=r.type==='in'?'text-emerald-700':'text-rose-700';
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td class="px-3 py-2">${d.toLocaleDateString('th-TH')}</td>
+                      <td class="px-3 py-2">${d.toLocaleTimeString('th-TH')}</td>
+                      <td class="px-3 py-2">${r.employeeName}</td>
+                      <td class="px-3 py-2 font-semibold ${color}">${t}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    function renderAll(){renderEmployeesTable();renderRecordsTable();}
+
+    // ===== Export =====
+    function pad2(n){return String(n).padStart(2,'0');}
+    function thaiMonthYearSlug(d=new Date()){return `${d.getFullYear()}-${pad2(d.getMonth()+1)}`;}
+    function downloadFile(content,filename,mime){
+      const blob=new Blob([content],{type:mime});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function buildMonthlyRows(){
+      const now=new Date(),daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+      return employees.map(e=>{
+        const {totalWorkHours,totalShifts,leftover}=getMonthWorkResult(e.id);
+        const dailyRate=e.monthlySalary/daysInMonth;
+        let otShifts=0,earned=0;
+        if(e.empType==='daily'){earned=totalShifts*dailyRate;}
+        else{otShifts=Math.max(0,totalShifts-daysInMonth);earned=e.monthlySalary+(otShifts*dailyRate);}
+        return{...e,daysInMonth,dailyRate,totalShifts,otShifts,totalWorkHours,leftover,earned:+earned.toFixed(2)};
+      });
+    }
+
+    function exportMonthlyCSV(){
+      const rows=buildMonthlyRows();
+      const header=['ชื่อ','ประเภท','เงินเดือน','วันในเดือน','เวรทั้งหมด','OT เวร','รายได้'];
+      const data=rows.map(r=>[r.name,r.empType,r.monthlySalary,r.daysInMonth,r.totalShifts,r.otShifts,r.earned]);
+      const BOM='\uFEFF';
+      const csv=[header,...data].map(r=>r.join(',')).join('\n');
+      downloadFile(BOM+csv,`monthly-summary-${thaiMonthYearSlug()}.csv`,'text/csv;charset=utf-8;');
+    }
+
+    function exportMonthlyExcel(){
+      const rows=buildMonthlyRows();
+      const esc=v=>String(v).replace(/[&<>]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[s]));
+      const thead='<tr><th>ชื่อ</th><th>ประเภท</th><th>เงินเดือน</th><th>วันในเดือน</th><th>เวรทั้งหมด</th><th>OT เวร</th><th>รายได้</th></tr>';
+      const tbody=rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.empType}</td><td>${r.monthlySalary}</td><td>${r.daysInMonth}</td><td>${r.totalShifts}</td><td>${r.otShifts}</td><td>${r.earned}</td></tr>`).join('');
+      const html=`<html><meta charset="UTF-8"><body><table border="1">${thead}${tbody}</table></body></html>`;
+      downloadFile(html,`monthly-summary-${thaiMonthYearSlug()}.xls`,'application/vnd.ms-excel');
+    }
+
+    function exportRecordsCSV(){
+      const now=new Date(),m=now.getMonth(),y=now.getFullYear();
+      const recs=timeRecords.filter(r=>{const d=new Date(r.timestamp);return d.getMonth()===m&&d.getFullYear()===y;});
+      const header=['ชื่อ','ประเภท','เวลา','ชนิด'];
+      const data=recs.map(r=>[r.employeeName,r.employeeId,new Date(r.timestamp).toLocaleString('th-TH'),r.type]);
+      const BOM='\uFEFF';
+      const csv=[header,...data].map(r=>r.join(',')).join('\n');
+      downloadFile(BOM+csv,`raw-records-${thaiMonthYearSlug()}.csv`,'text/csv;charset=utf-8;');
+    }
+  </script>
+</body>
+</html>
