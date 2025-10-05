@@ -3,23 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>บันทึกเวลาเข้า–ออกงาน — หน้าบ้าน</title>
+  <title>ระบบบันทึกเวลาเข้า–ออกงาน</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body{box-sizing:border-box}
-    .fade-in { animation: fadeIn .5s ease both; }
+    .fade-in{animation:fadeIn .5s ease both}
     @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
     .btn{position:relative;overflow:hidden}
     .btn::after{content:"";position:absolute;inset:auto auto -120% -120%;width:240%;height:240%;
-      background:radial-gradient(transparent 40%,rgba(255,255,255,.25) 41%);
-      transform:rotate(25deg);transition:all .5s ease;}
+      background:radial-gradient(transparent 40%,rgba(255,255,255,.25) 41%);transform:rotate(25deg);transition:all .5s ease;}
     .btn:hover::after{inset:auto auto -80% -80%}
     @media print{.no-print{display:none!important}}
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 text-gray-700">
+
   <!-- Header -->
-  <header class="no-print sticky top-0 z-30 backdrop-blur bg-white/50 border-b border-sky-100">
+  <header class="sticky top-0 z-30 backdrop-blur bg-white/50 border-b border-sky-100 no-print">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="h-9 w-9 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 shadow-lg flex items-center justify-center text-white font-bold">TL</div>
@@ -28,22 +28,19 @@
           <div class="text-xs text-sky-600">ระบบบันทึกเวลาเข้า–ออกงาน</div>
         </div>
       </div>
-      <nav class="text-sm">
-        <a href="admin.html" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/70 hover:bg-white text-sky-700 border border-sky-100 shadow-sm transition">แอดมิน</a>
-      </nav>
     </div>
   </header>
 
-  <!-- Hero -->
-  <section class="max-w-6xl mx-auto px-4 py-10 md:py-14">
+  <main class="max-w-6xl mx-auto px-4 py-10 md:py-14">
     <div class="grid md:grid-cols-2 gap-7 items-start">
+      <!-- Info + stats -->
       <div class="fade-in">
         <h1 class="text-3xl md:text-4xl font-extrabold text-sky-900 leading-tight">
-          บันทึกเวลาเข้า–ออกงานได้ง่าย<br/>
+          บันทึกเวลาเข้า–ออกงานได้ง่าย<br />
           <span class="bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">ปลอดภัย มีภาพยืนยัน</span>
         </h1>
         <p class="mt-3 text-sky-700/80">
-          เลือกชื่อพนักงาน กดถ่ายรูป แล้วบันทึก — ระบบกัน “ออกงาน” ถ้ายังไม่มี “เข้างาน”
+          เลือกชื่อพนักงาน ถ่ายรูป แล้วกดบันทึก — ระบบป้องกัน “ออกงาน” ก่อน “เข้างาน” อัตโนมัติ
         </p>
         <div class="mt-5 grid grid-cols-2 gap-4">
           <div class="rounded-2xl p-4 bg-white/70 backdrop-blur border border-sky-100 shadow-sm">
@@ -57,19 +54,20 @@
         </div>
       </div>
 
-      <!-- การ์ดทำรายการ -->
+      <!-- Form -->
       <div class="fade-in rounded-3xl bg-white/80 backdrop-blur border border-sky-100 shadow-xl p-6">
         <h2 class="text-lg font-semibold text-sky-900 mb-4">ทำรายการบันทึกเวลา</h2>
+
         <div class="grid md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium mb-2 text-sky-900">เลือกพนักงาน</label>
-            <select id="employeeSelect" class="w-full px-3 py-2 rounded-xl border border-sky-200 focus:ring-2 focus:ring-sky-300">
+            <select id="employeeSelect" class="w-full px-3 py-2 rounded-xl border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-300">
               <option value="">เลือกพนักงาน</option>
             </select>
           </div>
           <div>
             <label class="block text-sm font-medium mb-2 text-sky-900">ประเภทการบันทึก</label>
-            <select id="recordType" class="w-full px-3 py-2 rounded-xl border border-sky-200 focus:ring-2 focus:ring-sky-300">
+            <select id="recordType" class="w-full px-3 py-2 rounded-xl border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-300">
               <option value="in">เข้างาน</option>
               <option value="out">ออกงาน</option>
             </select>
@@ -83,22 +81,33 @@
           <div class="flex flex-col items-center gap-3">
             <div id="previewContainer" class="rounded-2xl border-2 border-dashed border-sky-200 p-2 bg-sky-50/50 min-h-[244px] min-w-[324px] flex items-center justify-center">
               <img id="capturedPhoto" alt="ตัวอย่างรูปถ่าย" class="hidden rounded-xl border border-sky-200 shadow-sm bg-white max-h-60" />
-              <div id="previewPlaceholder" class="text-sky-600 text-sm">ยังไม่มีรูป — กด “ถ่ายรูปทันที”</div>
+              <div id="previewPlaceholder" class="text-sky-600 text-sm">ยังไม่มีรูป — กดปุ่ม “ถ่ายรูปทันที”</div>
             </div>
-            <div class="flex gap-2">
-              <button id="shootBtn" class="btn bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl shadow">ถ่ายรูปทันที</button>
-              <button id="saveBtn" class="btn bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow">บันทึกเวลา</button>
+
+            <div class="flex flex-wrap gap-2 justify-center">
+              <button id="shootBtn" class="btn inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl shadow">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M4 7h3l2-2h6l2 2h3v12H4V7z" stroke="white" stroke-width="2"/><circle cx="12" cy="13" r="3.5" stroke="white" stroke-width="2"/></svg>
+                ถ่ายรูปทันที
+              </button>
+              <button id="saveBtn" class="btn inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                บันทึกเวลา
+              </button>
             </div>
+            <p class="text-xs text-sky-700/70 mt-1">* มือถือจะเปิดกล้องโดยอัตโนมัติและบีบอัดภาพก่อนเก็บ</p>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </main>
 
-  <!-- Records -->
+  <!-- Recent Records -->
   <section class="max-w-6xl mx-auto px-4 pb-14">
     <div class="rounded-3xl bg-white/80 backdrop-blur border border-sky-100 shadow-xl p-6">
-      <h3 class="text-lg font-semibold text-sky-900 mb-3">บันทึกล่าสุด</h3>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold text-sky-900">บันทึกล่าสุด</h3>
+        <span class="text-xs text-sky-600">แสดงรายการล่าสุด 30 รายการ</span>
+      </div>
       <div class="overflow-x-auto">
         <table class="w-full table-auto">
           <thead>
@@ -116,7 +125,31 @@
     </div>
   </section>
 
-  <!-- Footer -->
+  <!-- สรุปเงินเดือนรายวัน -->
+  <section class="max-w-6xl mx-auto px-4 pb-14 mt-10">
+    <div class="rounded-3xl bg-white/80 backdrop-blur border border-sky-100 shadow-xl p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold text-sky-900">สรุปเงินเดือนรายวัน (เดือนนี้)</h3>
+        <button onclick="updateSalaryTable()" class="btn bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl shadow text-sm">
+          คำนวณใหม่
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full table-auto">
+          <thead>
+            <tr class="bg-sky-50/70 text-sky-900">
+              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">ชื่อ-สกุล</th>
+              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">เงินเดือนต่อเดือน</th>
+              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">วันทำงาน</th>
+              <th class="px-4 py-3 text-left text-xs md:text-sm font-medium">รายได้ (บาท)</th>
+            </tr>
+          </thead>
+          <tbody id="salaryTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <footer class="no-print border-t border-sky-100 bg-white/70 backdrop-blur">
     <div class="max-w-6xl mx-auto px-4 py-4 text-xs text-sky-700 flex items-center justify-between">
       <span>© <span id="year"></span> TimeLog</span>
@@ -124,12 +157,13 @@
     </div>
   </footer>
 
-  <!-- Toast -->
   <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm shadow-lg hidden"></div>
 
   <script>
-    const MAX_DIM  = 1024; // ขนาดด้านยาวสุด
-    const QUALITY  = 0.72; // คุณภาพ JPEG
+    // ====== ตั้งค่าและสเตต ======
+    const MAX_DIM  = 1024;   // ย่อด้านยาวสุด
+    const QUALITY  = 0.72;   // คุณภาพ JPEG
+
     let employees   = JSON.parse(localStorage.getItem('employees')) || [];
     let timeRecords = JSON.parse(localStorage.getItem('timeRecords')) || [];
     let currentPhoto = null;
@@ -138,21 +172,36 @@
       document.getElementById('shootBtn').addEventListener('click', () => document.getElementById('mobileCapture').click());
       document.getElementById('mobileCapture').addEventListener('change', handleCapturedFile);
       document.getElementById('saveBtn').addEventListener('click', recordTime);
+
       updateEmployeeSelect();
       renderRecent();
       updateStats();
+      updateSalaryTable();
       document.getElementById('year').textContent = new Date().getFullYear();
     });
 
+    // ====== UI helpers ======
+    function showToast(text,isError=false){
+      const el=document.getElementById('toast');
+      el.textContent=text;
+      el.className=`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm shadow-lg ${isError?'bg-rose-600':'bg-sky-700'}`;
+      el.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer=setTimeout(()=>el.classList.add('hidden'),2200);
+    }
+
+    // ====== รายชื่อพนักงาน ======
     function updateEmployeeSelect(){
       const sel = document.getElementById('employeeSelect');
       sel.innerHTML = '<option value="">เลือกพนักงาน</option>';
       employees.forEach(e=>{
-        const o=document.createElement('option'); o.value=e.id; o.textContent=e.name;
+        const o=document.createElement('option');
+        o.value=e.id; o.textContent=e.name;
         sel.appendChild(o);
       });
     }
 
+    // ====== สถิติ ======
     function updateStats(){
       const todayKey = new Date().toLocaleDateString('th-TH');
       const todayCount = timeRecords.filter(r => new Date(r.timestamp).toLocaleDateString('th-TH') === todayKey).length;
@@ -160,94 +209,187 @@
       document.getElementById('statToday').textContent = todayCount;
     }
 
-    // ===== บีบอัดไฟล์ภาพ =====
+    // ====== ถ่ายรูป + บีบอัด ======
     async function handleCapturedFile(e){
       const file = e.target.files && e.target.files[0];
       if(!file) return;
-      const beforeKB = (file.size/1024).toFixed(0);
-      const dataURL = await compressFileToDataURL(file, MAX_DIM, QUALITY);
-      const afterKB = Math.floor((dataURL.length * 3/4)/1024);
-      currentPhoto = dataURL;
-      showPreview(dataURL);
-      showToast(`บีบอัดแล้ว: ${beforeKB}KB → ${afterKB}KB`);
+      try{
+        const beforeKB = (file.size/1024|0);
+        const dataURL = await compressFileToDataURL(file, MAX_DIM, QUALITY);
+        const afterKB  = Math.max(1, Math.floor((dataURL.length * 3/4) / 1024));
+        currentPhoto = dataURL;
+        showPreview(dataURL);
+        showToast(`บีบอัดรูป: ${beforeKB}KB → ${afterKB}KB`);
+      }catch(err){
+        console.error(err);
+        showToast('บีบอัดรูปไม่สำเร็จ',true);
+      }
     }
 
     async function compressFileToDataURL(file, maxDim, quality){
-      const img = await createImageBitmap(file).catch(async ()=>{
+      // ใช้ ImageBitmap ถ้าได้ จะเร็วและประหยัดเมม
+      let imgBitmap;
+      try { imgBitmap = await createImageBitmap(file); }
+      catch {
+        // fallback
         const fr = new FileReader();
-        return await new Promise((res,rej)=>{
-          fr.onload = ()=>{const im=new Image();im.onload=()=>res(im);im.src=fr.result;};
-          fr.onerror=rej; fr.readAsDataURL(file);
-        });
-      });
-      const {w,h}=getScaledSize(img.width||img.naturalWidth,img.height||img.naturalHeight,maxDim);
-      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-      const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-      ctx.drawImage(img,0,0,w,h);
+        const dataUrl = await new Promise((res,rej)=>{ fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(file); });
+        const img = new Image(); await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; img.src=dataUrl; });
+        imgBitmap = img;
+      }
+
+      const sw = imgBitmap.width  || imgBitmap.naturalWidth;
+      const sh = imgBitmap.height || imgBitmap.naturalHeight;
+      const {w,h} = getScaledSize(sw,sh,maxDim);
+
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.imageSmoothingEnabled=true;
+      ctx.imageSmoothingQuality='high';
+      ctx.drawImage(imgBitmap,0,0,w,h);
+
+      // ใช้ toBlob แล้วค่อยแปลงเป็น dataURL จะเล็กกว่าหลายกรณี
+      if(canvas.toBlob){
+        const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg',quality));
+        const fr2 = new FileReader();
+        return await new Promise((res)=>{ fr2.onload=()=>res(fr2.result); fr2.readAsDataURL(blob); });
+      }
       return canvas.toDataURL('image/jpeg',quality);
     }
-    function getScaledSize(sw,sh,maxDim){if(sw<=maxDim&&sh<=maxDim)return{w:sw,h:sh};const r=sw/sh;return r>=1?{w:maxDim,h:Math.round(maxDim/r)}:{w:Math.round(maxDim*r),h:maxDim};}
 
-    function showPreview(dataUrl){
-      document.getElementById('capturedPhoto').src=dataUrl;
-      document.getElementById('capturedPhoto').classList.remove('hidden');
-      document.getElementById('previewPlaceholder').classList.add('hidden');
+    function getScaledSize(sw,sh,maxDim){
+      if(sw<=maxDim && sh<=maxDim) return {w:sw,h:sh};
+      const r = sw/sh;
+      return r>=1 ? {w:maxDim, h:Math.round(maxDim/r)} : {w:Math.round(maxDim*r), h:maxDim};
     }
 
-    // ===== บันทึกเวลา =====
-    function recordTime(){
-      const empId=document.getElementById('employeeSelect').value;
-      const type=document.getElementById('recordType').value;
-      if(!empId){showToast('กรุณาเลือกพนักงาน',true);return;}
-      if(!currentPhoto){showToast('กรุณาถ่ายรูปก่อน',true);return;}
-      if(type==='out'&&!hasOpenInToday(parseInt(empId))){showToast('ยังไม่มีเข้างานวันนี้',true);return;}
-      const emp=employees.find(e=>e.id==empId);
-      const rec={id:Date.now(),employeeId:parseInt(empId),employeeName:emp.name,type,timestamp:new Date().toISOString(),photo:currentPhoto};
-      timeRecords.push(rec);
-      localStorage.setItem('timeRecords',JSON.stringify(timeRecords));
-      currentPhoto=null;
-      document.getElementById('capturedPhoto').classList.add('hidden');
-      document.getElementById('previewPlaceholder').classList.remove('hidden');
-      document.getElementById('mobileCapture').value='';
-      renderRecent();updateStats();
-      showToast(`บันทึกเวลา${type==='in'?'เข้างาน':'ออกงาน'}แล้ว`);
+    function showPreview(url){
+      const img=document.getElementById('capturedPhoto');
+      const ph=document.getElementById('previewPlaceholder');
+      img.src=url; img.classList.remove('hidden'); ph.classList.add('hidden');
     }
+
+    // ====== ตรวจ IN ก่อน OUT (ภายในวันเดียวกัน) ======
     function hasOpenInToday(empId){
-      const today=new Date().toLocaleDateString('th-TH');
-      const ins=timeRecords.filter(r=>r.employeeId===empId&&r.type==='in'&&new Date(r.timestamp).toLocaleDateString('th-TH')===today)
+      const todayKey=new Date().toLocaleDateString('th-TH');
+      const ins=timeRecords
+        .filter(r=>r.employeeId===empId && r.type==='in' && new Date(r.timestamp).toLocaleDateString('th-TH')===todayKey)
         .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-      for(const i of ins){
-        const out=timeRecords.find(r=>r.employeeId===empId&&r.type==='out'&&new Date(r.timestamp)>new Date(i.timestamp)&&new Date(r.timestamp).toLocaleDateString('th-TH')===today);
-        if(!out) return true;
+      for(const inRec of ins){
+        const out = timeRecords.find(r =>
+          r.employeeId===empId && r.type==='out' &&
+          new Date(r.timestamp).toLocaleDateString('th-TH')===todayKey &&
+          new Date(r.timestamp) > new Date(inRec.timestamp)
+        );
+        if(!out) return true; // มี IN ที่ยังไม่ถูกปิดด้วย OUT
       }
       return false;
     }
 
-    // ===== ตารางล่าสุด =====
+    // ====== บันทึกเวลา ======
+    function recordTime(){
+      const empId = document.getElementById('employeeSelect').value;
+      const type  = document.getElementById('recordType').value;
+      if(!empId)   return showToast('กรุณาเลือกพนักงาน',true);
+      if(!currentPhoto) return showToast('กรุณาถ่ายรูปยืนยันก่อน',true);
+
+      // ป้องกัน OUT หากไม่มี IN ของวันเดียวกันที่ยังเปิดอยู่
+      if(type==='out' && !hasOpenInToday(parseInt(empId))){
+        return showToast('ยังไม่มี “เข้างาน” ในวันเดียวกัน',true);
+      }
+
+      const emp = employees.find(e=>e.id==empId);
+      const rec = {
+        id: Date.now(),
+        employeeId: parseInt(empId),
+        employeeName: emp.name,
+        type,
+        timestamp: new Date().toISOString(),
+        photo: currentPhoto
+      };
+      timeRecords.push(rec);
+      localStorage.setItem('timeRecords', JSON.stringify(timeRecords));
+
+      // reset preview
+      currentPhoto=null;
+      document.getElementById('capturedPhoto').classList.add('hidden');
+      document.getElementById('previewPlaceholder').classList.remove('hidden');
+      document.getElementById('mobileCapture').value='';
+
+      renderRecent();
+      updateStats();
+      updateSalaryTable();
+      showToast(`บันทึกเวลา${type==='in'?'เข้างาน':'ออกงาน'}เรียบร้อย`);
+    }
+
+    // ====== ตารางบันทึกล่าสุด ======
     function renderRecent(){
-      const tb=document.getElementById('timeRecordsBody');tb.innerHTML='';
+      const tb=document.getElementById('timeRecordsBody');
+      tb.innerHTML='';
       [...timeRecords].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,30).forEach(r=>{
         const d=new Date(r.timestamp);
         const typeText=r.type==='in'?'เข้างาน':'ออกงาน';
         const typeClass=r.type==='in'?'text-emerald-700 bg-emerald-50':'text-rose-700 bg-rose-50';
-        const tr=document.createElement('tr');tr.className='border-b border-sky-100 hover:bg-sky-50/50';
+        const tr=document.createElement('tr');
+        tr.className='border-b border-sky-100 hover:bg-sky-50/50';
         tr.innerHTML=`
           <td class="px-4 py-3 text-xs md:text-sm">${d.toLocaleDateString('th-TH')}</td>
           <td class="px-4 py-3 text-xs md:text-sm">${d.toLocaleTimeString('th-TH')}</td>
           <td class="px-4 py-3 text-xs md:text-sm">${r.employeeName}</td>
-          <td class="px-4 py-3"><span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${typeClass}">${typeText}</span></td>
-          <td class="px-4 py-3"><img src="${r.photo}" class="w-12 h-9 rounded-lg border border-sky-200 shadow-sm bg-white" /></td>`;
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${typeClass}">
+              ${typeText}
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            <img src="${r.photo}" class="w-12 h-9 rounded-lg border border-sky-200 shadow-sm bg-white" />
+          </td>
+        `;
         tb.appendChild(tr);
       });
     }
 
-    // ===== Toast =====
-    let toastTimer;
-    function showToast(text,isError=false){
-      const el=document.getElementById('toast');el.textContent=text;
-      el.className=`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm shadow-lg ${isError?'bg-rose-600':'bg-sky-700'}`;
-      el.classList.remove('hidden');clearTimeout(toastTimer);
-      toastTimer=setTimeout(()=>el.classList.add('hidden'),2200);
+    // ====== สรุปเงินเดือนรายวัน (หารตามจำนวนวันจริงของเดือน) ======
+    function updateSalaryTable(){
+      const tbody = document.getElementById('salaryTableBody');
+      tbody.innerHTML='';
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;                   // 1..12
+      const daysInMonth = new Date(year, month, 0).getDate(); // จำนวนวันจริงของเดือนนี้
+
+      employees.forEach(emp=>{
+        const workDays = countWorkDays(emp.id, month, year);     // นับเฉพาะวันที่มี "เข้างาน"
+        const dailySalary = emp.monthlySalary / daysInMonth;     // เงินรายวัน
+        const earnedSalary = workDays * dailySalary;              // ยอดที่ควรได้รับ
+
+        const tr=document.createElement('tr');
+        tr.className='border-b border-sky-100 hover:bg-sky-50/50';
+        tr.innerHTML=`
+          <td class="px-4 py-3 text-sm text-sky-900">${emp.name}</td>
+          <td class="px-4 py-3 text-sm text-sky-900">${emp.monthlySalary.toLocaleString()} บาท</td>
+          <td class="px-4 py-3 text-sm text-sky-900">${workDays} วัน</td>
+          <td class="px-4 py-3 text-sm font-semibold text-sky-800">
+            ${earnedSalary.toLocaleString('th-TH',{maximumFractionDigits:2})} บาท
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // นับจำนวน "วัน" ที่พนักงานมาทำงานในเดือน/ปีนั้น (เข้างานอย่างน้อย 1 ครั้ง = นับ 1 วัน)
+    function countWorkDays(empId, month, year){
+      const setDays = new Set();
+      timeRecords.forEach(r=>{
+        if(r.employeeId!==empId || r.type!=='in') return;
+        const d = new Date(r.timestamp);
+        if(d.getFullYear()===year && (d.getMonth()+1)===month){
+          setDays.add(d.toDateString());
+        }
+      });
+      return setDays.size;
     }
   </script>
 </body>
