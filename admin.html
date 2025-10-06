@@ -3,22 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>หลังบ้าน — ระบบบันทึกเวลา (รายวัน + OT เวรเกิน)</title>
+  <title>หลังบ้าน — ระบบบันทึกเวลา (รายวัน + ประจำ/OT เวรเกิน)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body{box-sizing:border-box;font-family:'Sarabun',sans-serif;background:linear-gradient(to bottom right,#e0f2fe,#bae6fd)}
+    body{box-sizing:border-box;font-family:'Sarabun',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Noto Sans",sans-serif;background:linear-gradient(to bottom right,#e0f2fe,#bae6fd)}
     @media print{.no-print{display:none!important}}
   </style>
 </head>
 <body class="p-6 text-gray-800">
-  <div class="max-w-6xl mx-auto bg-white/80 backdrop-blur rounded-3xl shadow-lg p-6 md:p-8">
+  <div class="max-w-6xl mx-auto bg-white/85 backdrop-blur rounded-3xl shadow-lg p-6 md:p-8">
     <header class="flex flex-wrap items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-sky-900">หลังบ้าน — ระบบบันทึกเวลา</h1>
+      <div class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-white font-bold grid place-items-center shadow">TL</div>
+        <h1 class="text-2xl font-bold text-sky-900">หลังบ้าน — ระบบบันทึกเวลา</h1>
+      </div>
       <a href="index.html" class="no-print px-3 py-2 rounded-xl bg-white/70 hover:bg-white text-sky-700 border border-sky-100 shadow-sm">หน้าบ้าน</a>
     </header>
 
-    <!-- Add Employee -->
-    <section class="bg-white/90 border border-sky-100 rounded-2xl shadow p-5 mb-8">
+    <!-- เพิ่มพนักงาน -->
+    <section class="bg-white/95 border border-sky-100 rounded-2xl shadow p-5 mb-8">
       <h2 class="text-lg font-semibold text-sky-900 mb-4">เพิ่มพนักงาน</h2>
       <div class="grid md:grid-cols-4 gap-4">
         <div>
@@ -32,20 +35,22 @@
         <div>
           <label class="block text-sm mb-2 text-sky-900">ประเภทพนักงาน</label>
           <select id="empType" class="w-full px-3 py-2 rounded-xl border border-sky-200">
-            <option value="daily">ทดลองงาน (รายวัน)</option>
-            <option value="monthly">ประจำ (รายเดือน + OT เวรเกิน)</option>
+            <option value="daily">ทดลองงาน (รายวัน — ไม่มี OT)</option>
+            <option value="monthly">ประจำ (รายเดือน + OT = เวรเกิน)</option>
           </select>
         </div>
         <div class="flex items-end">
           <button onclick="addEmployee()" class="w-full bg-sky-600 hover:bg-sky-700 text-white rounded-xl py-2 shadow">เพิ่มพนักงาน</button>
         </div>
       </div>
+      <p class="text-xs text-sky-700/80 mt-3">* เวร = 12 ชั่วโมง • ระบบจับคู่ IN→OUT รวมชั่วโมงทั้งเดือน แล้วปัดลงเป็นเวร (ชั่วโมงที่ไม่ครบ 12 จะสะสมจนเป็นเวรถัดไป)</p>
     </section>
 
-    <!-- Employee Table -->
-    <section class="bg-white/90 border border-sky-100 rounded-2xl shadow p-5 mb-8">
+    <!-- ตารางพนักงาน -->
+    <section class="bg-white/95 border border-sky-100 rounded-2xl shadow p-5 mb-8">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-lg font-semibold text-sky-900">พนักงาน & สรุปการคำนวณ (เดือนนี้)</h2>
+        <div class="text-xs text-sky-700">ค่าเวร/วัน = เงินเดือน ÷ จำนวนวันในเดือน</div>
       </div>
 
       <div class="no-print flex flex-wrap gap-2 mb-3">
@@ -72,8 +77,8 @@
       </div>
     </section>
 
-    <!-- Records -->
-    <section class="bg-white/90 border border-sky-100 rounded-2xl shadow p-5">
+    <!-- ตารางบันทึกล่าสุด -->
+    <section class="bg-white/95 border border-sky-100 rounded-2xl shadow p-5">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-lg font-semibold text-sky-900">บันทึกเวลา (ล่าสุด)</h2>
         <button onclick="window.print()" class="no-print bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow">พิมพ์รายงาน</button>
@@ -95,106 +100,140 @@
   </div>
 
   <script>
-    const SHIFT_HOURS = 12;
-    const MAX_PAIR_HOURS = 24;
-    let employees = JSON.parse(localStorage.getItem('employees')) || [];
+    // ===== ค่าคงที่/สเตต =====
+    const SHIFT_HOURS = 12;     // 12 ชม. = 1 เวร
+    const MAX_PAIR_HOURS = 24;  // กันข้อมูลผิดพลาด (คู่ IN-OUT เกิน 24 ชม.)
+    let employees   = JSON.parse(localStorage.getItem('employees')) || [];
     let timeRecords = JSON.parse(localStorage.getItem('timeRecords')) || [];
 
     document.addEventListener('DOMContentLoaded', renderAll);
 
+    // ===== เก็บ/โหลด =====
     function saveEmployees(){ localStorage.setItem('employees', JSON.stringify(employees)); }
     function saveRecords(){ localStorage.setItem('timeRecords', JSON.stringify(timeRecords)); }
 
+    // ===== เพิ่ม/ลบพนักงาน =====
     function addEmployee(){
-      const name=document.getElementById('empName').value.trim();
-      const salary=parseFloat(document.getElementById('empSalary').value);
-      const type=document.getElementById('empType').value;
-      if(!name||!salary){alert('กรุณากรอกข้อมูลให้ครบ');return;}
-      employees.push({id:Date.now(),name,monthlySalary:salary,empType:type});
+      const name = document.getElementById('empName').value.trim();
+      const salary = parseFloat(document.getElementById('empSalary').value);
+      const type = document.getElementById('empType').value; // 'daily' | 'monthly'
+      if(!name || !salary || salary <= 0){ alert('กรอกชื่อและเงินเดือนให้ถูกต้อง'); return; }
+
+      employees.push({ id: Date.now(), name, monthlySalary: salary, empType: type });
       saveEmployees();
-      document.getElementById('empName').value='';
-      document.getElementById('empSalary').value='';
+      document.getElementById('empName').value = '';
+      document.getElementById('empSalary').value = '';
       renderAll();
     }
 
     function deleteEmployee(id){
-      if(!confirm('ลบพนักงานคนนี้?'))return;
-      employees=employees.filter(e=>e.id!==id);
-      timeRecords=timeRecords.filter(r=>r.employeeId!==id);
-      saveEmployees();saveRecords();
+      if(!confirm('ลบพนักงานคนนี้และบันทึกที่เกี่ยวข้องทั้งหมด?')) return;
+      employees = employees.filter(e => e.id !== id);
+      timeRecords = timeRecords.filter(r => r.employeeId !== id);
+      saveEmployees(); saveRecords();
       renderAll();
     }
 
+    // ===== สรุปเวลาทำงานรายเดือน: จับคู่ IN→OUT → รวมชั่วโมง → ปัดเป็นเวร =====
     function getMonthWorkResult(empId){
-      const now=new Date(),m=now.getMonth(),y=now.getFullYear();
-      const recs=timeRecords.filter(r=>r.employeeId===empId)
-        .filter(r=>{const d=new Date(r.timestamp);return d.getMonth()===m&&d.getFullYear()===y;})
-        .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+      const now = new Date();
+      const m = now.getMonth(), y = now.getFullYear();
+      const recs = timeRecords
+        .filter(r => r.employeeId === empId)
+        .filter(r => { const d=new Date(r.timestamp); return d.getMonth()===m && d.getFullYear()===y; })
+        .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-      let totalWorkHours=0,openIn=null;
+      let totalWorkHours = 0;
+      let openIn = null;
+
       for(const r of recs){
-        if(r.type==='in')openIn=r;
-        else if(r.type==='out'&&openIn){
-          const diff=(new Date(r.timestamp)-new Date(openIn.timestamp))/36e5;
-          if(diff>0) totalWorkHours+=Math.min(diff,SHIFT_HOURS);
-          openIn=null;
+        if(r.type === 'in'){
+          openIn = r;
+        }else if(r.type === 'out' && openIn){
+          let diffH = (new Date(r.timestamp) - new Date(openIn.timestamp)) / 36e5;
+          if(diffH > 0){
+            // จำกัดสูงสุดต่อคู่ (กันข้อมูลผิด)
+            if(diffH > MAX_PAIR_HOURS) diffH = MAX_PAIR_HOURS;
+            // นับชั่วโมงปกติสูงสุด 12 ต่อคู่ (ส่วนเกินในคู่เดียวกันไม่นับ เพื่อเลี่ยงข้อมูลผิด)
+            totalWorkHours += Math.min(diffH, SHIFT_HOURS);
+          }
+          openIn = null;
         }
       }
-      const totalShifts=Math.floor(totalWorkHours/SHIFT_HOURS);
-      const leftover=+(totalWorkHours%SHIFT_HOURS).toFixed(2);
-      return {totalWorkHours:+totalWorkHours.toFixed(2),totalShifts,leftover};
+
+      const totalShifts = Math.floor(totalWorkHours / SHIFT_HOURS); // เวรที่ทำได้จริง
+      const leftover = +(totalWorkHours % SHIFT_HOURS).toFixed(2);  // ชั่วโมงคงเหลือสะสม
+      return { totalWorkHours: +totalWorkHours.toFixed(2), totalShifts, leftover };
     }
 
+    // ===== เรนเดอร์ตารางพนักงาน (สูตรล่าสุด) =====
     function renderEmployeesTable(){
-      const tb=document.getElementById('employeeTableBody');tb.innerHTML='';
-      const now=new Date(),daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+      const tb = document.getElementById('employeeTableBody');
+      tb.innerHTML = '';
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const daysInMonth = new Date(year, month, 0).getDate();
 
       employees.forEach((e,i)=>{
-        const {totalWorkHours,totalShifts,leftover}=getMonthWorkResult(e.id);
-        const dailyRate=e.monthlySalary/daysInMonth;
-        let earned=0,desc='';
+        const { totalWorkHours, totalShifts, leftover } = getMonthWorkResult(e.id);
+        const dailyRate = e.monthlySalary / daysInMonth; // ค่าเวร/วัน
 
-        if(e.empType==='daily'){
-          earned=totalShifts*dailyRate;
-          desc=`ทดลองงาน • ${totalShifts} เวร (${totalWorkHours} ชม., เหลือ ${leftover} ชม.)`;
+        // ทดลองงาน: ไม่มี OT → จ่ายตามเวรที่ทำจริง
+        // ประจำ: OT = เวรเกิน และคิดเท่ากับเวรปกติ → รายได้รวม = dailyRate * totalShifts
+        const baseShifts = daysInMonth;
+        const otShifts   = Math.max(0, totalShifts - baseShifts);
+
+        let earned, descType;
+        if(e.empType === 'daily'){
+          earned   = dailyRate * totalShifts;
+          descType = `ทดลองงาน • ${totalShifts} เวร (${totalWorkHours} ชม., เหลือ ${leftover} ชม.)`;
         }else{
-          const baseShifts=daysInMonth;
-          const otShifts=Math.max(0,totalShifts-baseShifts);
-          const otPay=otShifts*dailyRate;
-          earned=e.monthlySalary+otPay;
-          desc=`ประจำ • ${totalShifts} เวร (ฐาน ${baseShifts}, OT ${otShifts}) • ${totalWorkHours} ชม.`;
+          earned   = dailyRate * totalShifts; // สูตรใหม่: เงินเดือน/วัน × เวรทั้งหมด (รวม OT)
+          descType = `ประจำ • ทำ ${totalShifts} เวร (OT ${otShifts} เวร) • รวม ${totalWorkHours} ชม.`;
         }
 
-        const tr=document.createElement('tr');
-        tr.className='border-b border-sky-100 hover:bg-sky-50/50';
-        tr.innerHTML=`
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-sky-100 hover:bg-sky-50/50';
+        tr.innerHTML = `
           <td class="px-3 py-2">${i+1}</td>
           <td class="px-3 py-2">${e.name}</td>
-          <td class="px-3 py-2">${e.empType==='daily'?'ทดลองงาน':'ประจำ'}</td>
+          <td class="px-3 py-2">${e.empType==='daily'?'ทดลองงาน (รายวัน)':'ประจำ (รายเดือน + OT เวรเกิน)'}</td>
           <td class="px-3 py-2">${e.monthlySalary.toLocaleString()} บาท</td>
-          <td class="px-3 py-2">${desc}</td>
-          <td class="px-3 py-2 font-semibold text-emerald-700">${earned.toLocaleString('th-TH',{maximumFractionDigits:2})} บาท</td>
-          <td class="px-3 py-2 no-print"><button onclick="deleteEmployee(${e.id})" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded">ลบ</button></td>`;
+          <td class="px-3 py-2">${descType}</td>
+          <td class="px-3 py-2 font-semibold text-emerald-700">
+            ${earned.toLocaleString('th-TH',{maximumFractionDigits:2})} บาท
+          </td>
+          <td class="px-3 py-2 no-print">
+            <button onclick="deleteEmployee(${e.id})" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded">ลบ</button>
+          </td>
+        `;
         tb.appendChild(tr);
       });
     }
 
+    // ===== เรนเดอร์ตารางบันทึกล่าสุด =====
     function renderRecordsTable(){
-      const tb=document.getElementById('recordTableBody');tb.innerHTML='';
+      const tb = document.getElementById('recordTableBody');
+      tb.innerHTML = '';
       [...timeRecords].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,50).forEach(r=>{
-        const d=new Date(r.timestamp);
-        const t=r.type==='in'?'เข้างาน':'ออกงาน';
-        const color=r.type==='in'?'text-emerald-700':'text-rose-700';
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td class="px-3 py-2">${d.toLocaleDateString('th-TH')}</td>
-                      <td class="px-3 py-2">${d.toLocaleTimeString('th-TH')}</td>
-                      <td class="px-3 py-2">${r.employeeName}</td>
-                      <td class="px-3 py-2 font-semibold ${color}">${t}</td>`;
+        const d = new Date(r.timestamp);
+        const typeText = r.type==='in'?'เข้างาน':'ออกงาน';
+        const color = r.type==='in'?'text-emerald-700':'text-rose-700';
+        const tr = document.createElement('tr');
+        tr.className='border-b border-sky-100 hover:bg-sky-50/50';
+        tr.innerHTML = `
+          <td class="px-3 py-2">${d.toLocaleDateString('th-TH')}</td>
+          <td class="px-3 py-2">${d.toLocaleTimeString('th-TH')}</td>
+          <td class="px-3 py-2">${r.employeeName}</td>
+          <td class="px-3 py-2 font-semibold ${color}">${typeText}</td>
+        `;
         tb.appendChild(tr);
       });
     }
 
-    function renderAll(){renderEmployeesTable();renderRecordsTable();}
+    function renderAll(){ renderEmployeesTable(); renderRecordsTable(); }
 
     // ===== Export =====
     function pad2(n){return String(n).padStart(2,'0');}
@@ -209,40 +248,55 @@
     function buildMonthlyRows(){
       const now=new Date(),daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
       return employees.map(e=>{
-        const {totalWorkHours,totalShifts,leftover}=getMonthWorkResult(e.id);
-        const dailyRate=e.monthlySalary/daysInMonth;
-        let otShifts=0,earned=0;
-        if(e.empType==='daily'){earned=totalShifts*dailyRate;}
-        else{otShifts=Math.max(0,totalShifts-daysInMonth);earned=e.monthlySalary+(otShifts*dailyRate);}
-        return{...e,daysInMonth,dailyRate,totalShifts,otShifts,totalWorkHours,leftover,earned:+earned.toFixed(2)};
+        const { totalWorkHours, totalShifts, leftover } = getMonthWorkResult(e.id);
+        const dailyRate = e.monthlySalary / daysInMonth;
+        const baseShifts = daysInMonth;
+        const otShifts = Math.max(0, totalShifts - baseShifts);
+        const earned = +(dailyRate * totalShifts).toFixed(2); // รวม OT ตามสูตรใหม่
+
+        return {
+          id:e.id, name:e.name, type:e.empType==='daily'?'ทดลองงาน(รายวัน)':'ประจำ(รายเดือน+OT)',
+          salary:e.monthlySalary, daysInMonth, dailyRate:+dailyRate.toFixed(2),
+          totalShifts, otShifts, workHours:+totalWorkHours.toFixed(2), leftover:+leftover.toFixed(2),
+          earned
+        };
       });
     }
 
     function exportMonthlyCSV(){
       const rows=buildMonthlyRows();
-      const header=['ชื่อ','ประเภท','เงินเดือน','วันในเดือน','เวรทั้งหมด','OT เวร','รายได้'];
-      const data=rows.map(r=>[r.name,r.empType,r.monthlySalary,r.daysInMonth,r.totalShifts,r.otShifts,r.earned]);
+      const header=['EmployeeID','Name','Type','MonthlySalary','DaysInMonth','DailyRate','TotalShifts','OTShifts','WorkHours','LeftoverHours','Earned'];
+      const data=rows.map(r=>[r.id,r.name,r.type,r.salary,r.daysInMonth,r.dailyRate,r.totalShifts,r.otShifts,r.workHours,r.leftover,r.earned]);
       const BOM='\uFEFF';
-      const csv=[header,...data].map(r=>r.join(',')).join('\n');
+      const csv=[header,...data].map(row=>row.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
       downloadFile(BOM+csv,`monthly-summary-${thaiMonthYearSlug()}.csv`,'text/csv;charset=utf-8;');
     }
 
     function exportMonthlyExcel(){
       const rows=buildMonthlyRows();
       const esc=v=>String(v).replace(/[&<>]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[s]));
-      const thead='<tr><th>ชื่อ</th><th>ประเภท</th><th>เงินเดือน</th><th>วันในเดือน</th><th>เวรทั้งหมด</th><th>OT เวร</th><th>รายได้</th></tr>';
-      const tbody=rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.empType}</td><td>${r.monthlySalary}</td><td>${r.daysInMonth}</td><td>${r.totalShifts}</td><td>${r.otShifts}</td><td>${r.earned}</td></tr>`).join('');
-      const html=`<html><meta charset="UTF-8"><body><table border="1">${thead}${tbody}</table></body></html>`;
-      downloadFile(html,`monthly-summary-${thaiMonthYearSlug()}.xls`,'application/vnd.ms-excel');
+      const thead='<tr><th>EmployeeID</th><th>Name</th><th>Type</th><th>MonthlySalary</th><th>DaysInMonth</th><th>DailyRate</th><th>TotalShifts</th><th>OTShifts</th><th>WorkHours</th><th>LeftoverHours</th><th>Earned</th></tr>';
+      const tbody=rows.map(r=>`<tr>
+        <td>${esc(r.id)}</td><td>${esc(r.name)}</td><td>${esc(r.type)}</td>
+        <td>${r.salary}</td><td>${r.daysInMonth}</td><td>${r.dailyRate.toFixed?r.dailyRate.toFixed(2):r.dailyRate}</td>
+        <td>${r.totalShifts}</td><td>${r.otShifts}</td><td>${r.workHours.toFixed?r.workHours.toFixed(2):r.workHours}</td>
+        <td>${r.leftover.toFixed?r.leftover.toFixed(2):r.leftover}</td><td>${r.earned.toFixed?r.earned.toFixed(2):r.earned}</td>
+      </tr>`).join('');
+      const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8">
+      <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Monthly Summary</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+      </head><body><table border="1"><thead>${thead}</thead><tbody>${tbody}</tbody></table></body></html>`;
+      downloadFile(html,`monthly-summary-${thaiMonthYearSlug()}.xls`,'application/vnd.ms-excel;charset=utf-8;');
     }
 
     function exportRecordsCSV(){
       const now=new Date(),m=now.getMonth(),y=now.getFullYear();
-      const recs=timeRecords.filter(r=>{const d=new Date(r.timestamp);return d.getMonth()===m&&d.getFullYear()===y;});
-      const header=['ชื่อ','ประเภท','เวลา','ชนิด'];
-      const data=recs.map(r=>[r.employeeName,r.employeeId,new Date(r.timestamp).toLocaleString('th-TH'),r.type]);
+      const rows=timeRecords
+        .filter(r=>{const d=new Date(r.timestamp);return d.getMonth()===m&&d.getFullYear()===y;})
+        .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+      const header=['id','employeeId','employeeName','type','timestamp'];
+      const data=rows.map(r=>[r.id,r.employeeId,r.employeeName,r.type,r.timestamp]);
       const BOM='\uFEFF';
-      const csv=[header,...data].map(r=>r.join(',')).join('\n');
+      const csv=[header,...data].map(row=>row.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
       downloadFile(BOM+csv,`raw-records-${thaiMonthYearSlug()}.csv`,'text/csv;charset=utf-8;');
     }
   </script>
